@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>С 8 Марта, мама Алёна!</title>
+    <style>
+        body {
+            background-color: #ffe6f2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            color: #ff3399;
+        }
+        h1 {
+            font-size: 40px;
+            margin: 20px;
+        }
+        .dance-container {
+            display: flex;
+            justify-content: space-around;
+            width: 80%;
+            margin-top: 20px;
+        }
+        img {
+            width: 150px;
+            height: 150px;
+            animation: dance 1s infinite alternate;
+        }
+        @keyframes dance {
+            0% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(10deg); }
+            100% { transform: translateY(0) rotate(-10deg); }
+        }
+        audio {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>С 8 Марта, мама Алёна!</h1>
+    <p>Дорогая мама, поздравляю тебя с Международным женским днём! Ты самая лучшая!</p>
+
+    <div class="dance-container">
+        <img src="pngwing.com (5).png" alt="Танцующий цветок">
+        <img src="pngwing.com (2).png" alt="Танцующий кот">
+        <img src="pngwing.com (3).png" alt="Танцующий мишка">
+        <img src="pngwing.com (4).png" alt="Танцующий зайчик">
+    </div>
+
+    <audio controls>
+        <source src="8март.mp3" type="audio/mpeg">
+        Ваш браузер не поддерживает аудио.
+    </audio>
+
+    <script>
+        // Дополнительный JavaScript не требуется, анимация работает через CSS
+    </script>
+</body>
+</html>
