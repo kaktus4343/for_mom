@@ -1,1295 +1,331 @@
-
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Онлайн курс обучения от PalatovDA - Элитное обучение</title>
+    <title>Online Pong Game</title>
     <style>
-        :root {
-            --primary: #1a2b42;
-            --accent: #b8860b;
-            --light: #f5f5f5;
-            --dark: #333;
-            --text: #4a4a4a;
-            --section-padding: 100px 0;
-        }
-        
-        * {
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Montserrat', sans-serif;
-        }
-        
-        html {
-            scroll-behavior: smooth;
-        }
-        
-        body {
-            font-size: 16px;
-            line-height: 1.6;
-            color: var(--text);
-            overflow-x: hidden;
-        }
-        
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        h1, h2, h3, h4 {
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: var(--primary);
-        }
-        
-        h1 {
-            font-size: 3rem;
-        }
-        
-        h2 {
-            font-size: 2.5rem;
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        h3 {
-            font-size: 1.8rem;
-        }
-        
-        p {
-            margin-bottom: 20px;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 15px 30px;
-            background-color: var(--accent);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+            font-family: Arial, sans-serif;
             color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        
-        .btn:hover {
-            background-color: #a37608;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            background-color: #000;
+            border: 2px solid #444;
+            overflow: hidden;
         }
-        
-        /* Header */
-        header {
-            position: fixed;
+
+        #paddleA, #paddleB {
+            position: absolute;
+            width: 15px;
+            height: 100px;
+            background-color: white;
+        }
+
+        #paddleA {
+            left: 20px;
+            top: 200px;
+        }
+
+        #paddleB {
+            right: 20px;
+            top: 200px;
+        }
+
+        #ball {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: white;
+            border-radius: 50%;
+            top: 250px;
+            left: 400px;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        #waiting {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        #startScreen {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            z-index: 1000;
-            background-color: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 20px 0;
-            transition: all 0.3s ease;
-        }
-        
-        header.scrolled {
-            padding: 10px 0;
-        }
-        
-        .header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-        }
-        
-        .logo span {
-            color: var(--accent);
-        }
-        
-        nav ul {
-            display: flex;
-            list-style: none;
-        }
-        
-        nav ul li {
-            margin-left: 30px;
-        }
-        
-        nav ul li a {
-            color: var(--dark);
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        nav ul li a:hover {
-            color: var(--accent);
-        }
-        
-        .mobile-menu {
-            display: none;
-            cursor: pointer;
-        }
-        
-        /* Hero Section */
-        .hero {
-            height: 100vh;
-            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/api/placeholder/1200/800') center/cover no-repeat;
-            display: flex;
-            align-items: center;
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero-content {
-            max-width: 800px;
-        }
-        
-        .hero h1 {
-            color: white;
-            font-size: 3.5rem;
-            margin-bottom: 30px;
-            opacity: 0;
-            transform: translateY(30px);
-            animation: fadeInUp 1s forwards 0.5s;
-        }
-        
-        .hero p {
-            font-size: 1.2rem;
-            margin-bottom: 40px;
-            opacity: 0;
-            transform: translateY(30px);
-            animation: fadeInUp 1s forwards 0.8s;
-        }
-        
-        .hero .btn {
-            opacity: 0;
-            transform: translateY(30px);
-            animation: fadeInUp 1s forwards 1.1s;
-        }
-        
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Features Section */
-        .features {
-            padding: var(--section-padding);
-            background-color: var(--light);
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 40px;
-        }
-        
-        .feature-item {
-            background: white;
-            padding: 40px 30px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-        }
-        
-        .feature-item:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-        }
-        
-        .feature-icon {
-            width: 80px;
-            height: 80px;
-            background-color: rgba(184, 134, 11, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 25px;
-        }
-        
-        .feature-icon i {
-            font-size: 36px;
-            color: var(--accent);
-        }
-        
-        /* About Course */
-        .about {
-            padding: var(--section-padding);
-        }
-        
-        .about-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 50px;
-            align-items: center;
-        }
-        
-        .about-image {
-            position: relative;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        .about-image img {
-            width: 100%;
-            height: auto;
-            display: block;
-            transition: transform 0.5s ease;
-        }
-        
-        .about-image:hover img {
-            transform: scale(1.05);
-        }
-        
-        .about-text h2 {
-            text-align: left;
-        }
-        
-        .about-text ul {
-            margin-left: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .about-text li {
-            margin-bottom: 10px;
-        }
-        
-        /* Curriculum */
-        .curriculum {
-            padding: var(--section-padding);
-            background-color: var(--light);
-        }
-        
-        .accordion {
-            margin-bottom: 20px;
-        }
-        
-        .accordion-header {
-            background-color: white;
-            padding: 20px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-        }
-        
-        .accordion-header h3 {
-            margin-bottom: 0;
-            font-size: 1.3rem;
-        }
-        
-        .accordion-header.active {
-            background-color: var(--primary);
-            color: white;
-        }
-        
-        .accordion-header.active h3 {
-            color: white;
-        }
-        
-        .accordion-content {
-            background-color: white;
-            padding: 0;
-            max-height: 0;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            border-radius: 0 0 5px 5px;
-        }
-        
-        .accordion-inner {
-            padding: 20px;
-        }
-        
-        .accordion-content ul {
-            margin-left: 20px;
-        }
-        
-        .accordion-content li {
-            margin-bottom: 10px;
-        }
-        
-        /* Testimonials */
-        .testimonials {
-            padding: var(--section-padding);
-        }
-        
-        .testimonial-slider {
-            max-width: 900px;
-            margin: 0 auto;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .testimonial-slides {
-            display: flex;
-            transition: transform 0.5s ease;
-        }
-        
-        .testimonial-slide {
-            min-width: 100%;
-            padding: 40px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-        
-        .testimonial-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-        
-        .testimonial-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .testimonial-content {
-            font-style: italic;
-            margin-bottom: 20px;
-        }
-        
-        .testimonial-author {
-            font-weight: 600;
-            color: var(--primary);
-        }
-        
-        .testimonial-author span {
-            display: block;
-            font-weight: normal;
-            font-size: 0.9rem;
-            color: var(--text);
-        }
-        
-        .testimonial-dots {
-            display: flex;
             justify-content: center;
-            margin-top: 30px;
+            align-items: center;
+            z-index: 10;
         }
-        
-        .testimonial-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: #ddd;
-            margin: 0 5px;
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
             cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .testimonial-dot.active {
-            background-color: var(--accent);
-        }
-        
-        /* Pricing */
-        .pricing {
-            padding: var(--section-padding);
-            background-color: var(--light);
-        }
-        
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-        }
-        
-        .pricing-plan {
-            background-color: white;
-            border-radius: 10px;
-            padding: 40px 30px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .pricing-plan.featured {
-            transform: scale(1.05);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
-            border: 2px solid var(--accent);
-        }
-        
-        .pricing-plan.featured::before {
-            content: "Популярный";
-            position: absolute;
-            top: 20px;
-            right: -35px;
-            background-color: var(--accent);
+            background-color: #4CAF50;
             color: white;
-            padding: 5px 40px;
-            transform: rotate(45deg);
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        
-        .pricing-plan:hover {
-            transform: translateY(-10px);
-        }
-        
-        .pricing-plan h3 {
-            font-size: 1.5rem;
-        }
-        
-        .pricing-price {
-            font-size: 3rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 30px;
-        }
-        
-        .pricing-price span {
-            font-size: 1rem;
-            font-weight: normal;
-            color: var(--text);
-        }
-        
-        .pricing-features {
-            list-style: none;
-            margin-bottom: 30px;
-        }
-        
-        .pricing-features li {
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .pricing-features li:last-child {
-            border-bottom: none;
-        }
-        
-        /* FAQ */
-        .faq {
-            padding: var(--section-padding);
-        }
-        
-        .faq-item {
-            margin-bottom: 20px;
-        }
-        
-        .faq-question {
-            background-color: white;
-            padding: 20px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border: none;
             border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            font-weight: 600;
-            transition: all 0.3s ease;
         }
-        
-        .faq-question.active {
-            background-color: var(--primary);
-            color: white;
-        }
-        
-        .faq-answer {
-            background-color: white;
-            padding: 0;
-            max-height: 0;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            border-radius: 0 0 5px 5px;
-        }
-        
-        .faq-inner {
-            padding: 20px;
-        }
-        
-        /* Contact */
-        .contact {
-            padding: var(--section-padding);
-            background-color: var(--light);
-        }
-        
-        .contact-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 50px;
-        }
-        
-        .contact-info h3 {
-            margin-bottom: 30px;
-        }
-        
-        .contact-info p {
-            margin-bottom: 20px;
-        }
-        
-        .contact-info-item {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        
-        .contact-info-item i {
-            width: 40px;
-            height: 40px;
-            background-color: rgba(184, 134, 11, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            color: var(--accent);
-        }
-        
-        .contact-form .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .contact-form label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        
-        .contact-form input,
-        .contact-form textarea {
-            width: 100%;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-        
-        .contact-form textarea {
-            height: 150px;
-            resize: vertical;
-        }
-        
-        /* Footer */
-        footer {
-            background-color: var(--primary);
-            color: white;
-            padding: 80px 0 20px;
-        }
-        
-        .footer-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 50px;
-            margin-bottom: 60px;
-        }
-        
-        .footer-column h3 {
-            color: white;
-            margin-bottom: 30px;
-        }
-        
-        .footer-links {
-            list-style: none;
-        }
-        
-        .footer-links li {
-            margin-bottom: 15px;
-        }
-        
-        .footer-links a {
-            color: #ddd;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        .footer-links a:hover {
-            color: var(--accent);
-        }
-        
-        .social-links {
-            display: flex;
-            margin-top: 20px;
-        }
-        
-        .social-links a {
-            width: 40px;
-            height: 40px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 10px;
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        .social-links a:hover {
-            background-color: var(--accent);
-        }
-        
-        .footer-bottom {
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-            font-size: 0.9rem;
-            color: #aaa;
-        }
-        
-        /* Animations */
-        .animate {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 1s ease;
-        }
-        
-        .animate.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        /* Responsive */
-        @media screen and (max-width: 768px) {
-            h1 {
-                font-size: 2.5rem;
-            }
-            
-            h2 {
-                font-size: 2rem;
-            }
-            
-            .about-content,
-            .contact-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .about-image {
-                grid-row: 1;
-                margin-bottom: 30px;
-            }
-            
-            nav {
-                position: fixed;
-                top: 0;
-                right: -100%;
-                width: 80%;
-                height: 100vh;
-                background-color: white;
-                flex-direction: column;
-                padding: 80px 40px;
-                transition: all 0.5s ease;
-                box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
-            }
-            
-            nav.active {
-                right: 0;
-            }
-            
-            nav ul {
-                flex-direction: column;
-            }
-            
-            nav ul li {
-                margin: 15px 0;
-            }
-            
-            .mobile-menu {
-                display: block;
-                z-index: 1001;
-            }
-            
-            .mobile-menu span {
-                display: block;
-                width: 30px;
-                height: 3px;
-                background-color: var(--dark);
-                margin: 6px 0;
-                transition: all 0.3s ease;
-            }
-            
-            .mobile-menu.active span:nth-child(1) {
-                transform: rotate(-45deg) translate(-5px, 6px);
-            }
-            
-            .mobile-menu.active span:nth-child(2) {
-                opacity: 0;
-            }
-            
-            .mobile-menu.active span:nth-child(3) {
-                transform: rotate(45deg) translate(-5px, -6px);
-            }
+
+        button:hover {
+            background-color: #45a049;
         }
     </style>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="container header-container">
-            <a href="#" class="logo">Palatov<span>DA</span></a>
-            <div class="mobile-menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="#hero">Главная</a></li>
-                    <li><a href="#features">Преимущества</a></li>
-                    <li><a href="#about">О курсе</a></li>
-                    <li><a href="#curriculum">Программа</a></li>
-                    <li><a href="#pricing">Цены</a></li>
-                    <li><a href="#contact">Контакты</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
+    <div id="gameContainer">
+        <div id="paddleA"></div>
+        <div id="paddleB"></div>
+        <div id="ball"></div>
+        <div id="score">0 : 0</div>
 
-    <!-- Hero Section -->
-    <section id="hero" class="hero">
-        <div class="container hero-content">
-            <h1>Онлайн курс обучения от PalatovDA</h1>
-            <p>Получите профессиональные навыки и знания благодаря нашему элитному видео-курсу. Начните свой путь к успеху уже сегодня!</p>
-            <a href="#pricing" class="btn">Начать обучение</a>
+        <div id="waiting" style="display: none;">
+            <h2>Waiting for opponent...</h2>
+            <p>Share this link with a friend to play together</p>
+            <div id="gameLink"></div>
         </div>
-    </section>
 
-    <!-- Features Section -->
-    <section id="features" class="features">
-        <div class="container">
-            <h2>Почему выбирают нас</h2>
-            <div class="features-grid">
-                <div class="feature-item animate">
-                    <div class="feature-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <h3>Экспертное обучение</h3>
-                    <p>Наши курсы разработаны опытными профессионалами с многолетним стажем работы в индустрии.</p>
-                </div>
-                <div class="feature-item animate">
-                    <div class="feature-icon">
-                        <i class="fas fa-laptop"></i>
-                    </div>
-                    <h3>Современные методики</h3>
-                    <p>Используем передовые образовательные технологии для максимально эффективного обучения.</p>
-                </div>
-                <div class="feature-item animate">
-                    <div class="feature-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <h3>Гибкий график</h3>
-                    <p>Изучайте материалы в удобное для вас время и в комфортном темпе.</p>
-                </div>
-                <div class="feature-item animate">
-                    <div class="feature-icon">
-                        <i class="fas fa-certificate"></i>
-                    </div>
-                    <h3>Сертификат</h3>
-                    <p>По окончании курса получите сертификат, подтверждающий ваши новые компетенции.</p>
-                </div>
-            </div>
+        <div id="startScreen">
+            <h1>Online Pong Game</h1>
+            <button id="createGameBtn">Create Game</button>
+            <button id="joinGameBtn">Join Game</button>
         </div>
-    </section>
+    </div>
 
-    <!-- About Course -->
-    <section id="about" class="about">
-        <div class="container">
-            <div class="about-content">
-                <div class="about-image animate">
-                    <img src="/api/placeholder/600/400" alt="Онлайн курс">
-                </div>
-                <div class="about-text animate">
-                    <h2>О нашем курсе</h2>
-                    <p>Онлайн курс обучения от PalatovDA — это комплексная программа, направленная на развитие профессиональных навыков и компетенций. Наш курс разработан с учетом современных требований рынка и передовых методик обучения.</p>
-                    <p>Что вы получите:</p>
-                    <ul>
-                        <li>Подробные видео-уроки с пошаговыми инструкциями</li>
-                        <li>Практические задания для закрепления материала</li>
-                        <li>Индивидуальную обратную связь от преподавателей</li>
-                        <li>Доступ к эксклюзивным материалам и ресурсам</li>
-                        <li>Возможность обучения в любое удобное время</li>
-                    </ul>
-                    <a href="#pricing" class="btn">Выбрать тариф</a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Curriculum -->
-    <section id="curriculum" class="curriculum">
-        <div class="container">
-            <h2>Программа курса</h2>
-            <div class="accordion">
-                <div class="accordion-header">
-                    <h3>Модуль 1: Введение</h3>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-inner">
-                        <p>В первом модуле вы познакомитесь с основными концепциями и подходами, которые будут использоваться на протяжении всего курса.</p>
-                        <ul>
-                            <li>Урок 1: Знакомство с платформой</li>
-                            <li>Урок 2: Основы и принципы работы</li>
-                            <li>Урок 3: Настройка рабочего окружения</li>
-                            <li>Практическое задание: Настройка и подготовка</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="accordion">
-                <div class="accordion-header">
-                    <h3>Модуль 2: Основные принципы</h3>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-inner">
-                        <p>Изучим фундаментальные принципы и методики, необходимые для дальнейшего прогресса.</p>
-                        <ul>
-                            <li>Урок 1: Теоретические основы</li>
-                            <li>Урок 2: Практические методики</li>
-                            <li>Урок 3: Разбор реальных примеров</li>
-                            <li>Практическое задание: Применение основных принципов</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="accordion">
-                <div class="accordion-header">
-                    <h3>Модуль 3: Продвинутые техники</h3>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-inner">
-                        <p>В этом модуле мы углубимся в специализированные техники и методы, которые значительно повысят ваш профессиональный уровень.</p>
-                        <ul>
-                            <li>Урок 1: Продвинутые стратегии</li>
-                            <li>Урок 2: Оптимизация процессов</li>
-                            <li>Урок 3: Решение сложных задач</li>
-                            <li>Практическое задание: Разработка комплексного решения</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="accordion">
-                <div class="accordion-header">
-                    <h3>Модуль 4: Практическое применение</h3>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="accordion-inner">
-                        <p>Заключительный модуль посвящен практическому применению полученных знаний в реальных проектах.</p>
-                        <ul>
-                            <li>Урок 1: Подготовка к проекту</li>
-                            <li>Урок 2: Реализация проекта</li>
-                            <li>Урок 3: Анализ и оптимизация</li>
-                            <li>Финальный проект: Разработка полноценного решения</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Testimonials -->
-    <section id="testimonials" class="testimonials">
-        <div class="container">
-            <h2>Отзывы наших студентов</h2>
-            <div class="testimonial-slider">
-                <div class="testimonial-slides">
-                    <div class="testimonial-slide">
-                        <div class="testimonial-avatar">
-                            <img src="/api/placeholder/80/80" alt="Студент 1">
-                        </div>
-                        <div class="testimonial-content">
-                            <p>"Этот курс полностью изменил мое представление о профессии. Благодаря структурированной подаче материала и практическим заданиям я смог быстро освоить новые навыки и применить их в работе."</p>
-                        </div>
-                        <div class="testimonial-author">
-                            Александр Петров
-                            <span>Инженер, Москва</span>
-                        </div>
-                    </div>
-                    <div class="testimonial-slide">
-                        <div class="testimonial-avatar">
-                            <img src="/api/placeholder/80/80" alt="Студент 2">
-                        </div>
-                        <div class="testimonial-content">
-                            <p>"Потрясающий курс! Преподаватели действительно знают свое дело и умеют доступно объяснять сложные темы. Особенно ценна возможность получать обратную связь и консультации. Рекомендую всем, кто хочет развиваться в этой области."</p>
-                        </div>
-                        <div class="testimonial-author">
-                            Елена Соколова
-                            <span>Маркетолог, Санкт-Петербург</span>
-                        </div>
-                    </div>
-                    <div class="testimonial-slide">
-                        <div class="testimonial-avatar">
-                            <img src="/api/placeholder/80/80" alt="Студент 3">
-                        </div>
-                        <div class="testimonial-content">
-                            <p>"Я долго выбирал курс для профессионального развития и не пожалел, что остановился именно на этом. Качество материалов превзошло все мои ожидания. После прохождения курса я смог продвинуться по карьерной лестнице."</p>
-                        </div>
-                        <div class="testimonial-author">
-                            Дмитрий Волков
-                            <span>Руководитель проектов, Екатеринбург</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="testimonial-dots">
-                    <div class="testimonial-dot active"></div>
-                    <div class="testimonial-dot"></div>
-                    <div class="testimonial-dot"></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Pricing -->
-    <section id="pricing" class="pricing">
-        <div class="container">
-            <h2>Выберите свой тариф</h2>
-            <div class="pricing-grid">
-                <div class="pricing-plan animate">
-                    <h3>Базовый</h3>
-                    <div class="pricing-price">
-                        14 900 ₽ <span>/ единоразово</span>
-                    </div>
-                    <ul class="pricing-features">
-                        <li>Доступ к базовым видео-урокам</li>
-                        <li>3 месяца доступа к материалам</li>
-                        <li>Выполнение практических заданий</li>
-                        <li>Проверка домашних заданий</li>
-                        <li>Сертификат по окончании курса</li>
-                    </ul>
-                    <a href="#contact" class="btn">Выбрать</a>
-                </div>
-                <div class="pricing-plan featured animate">
-                    <h3>Стандарт</h3>
-                    <div class="pricing-price">
-                        24 900 ₽ <span>/ единоразово</span>
-                    </div>
-                    <ul class="pricing-features">
-                        <li>Доступ ко всем видео-урокам</li>
-                        <li>6 месяцев доступа к материалам</li>
-                        <li>Расширенные практические задания</li>
-                        <li>Проверка и детальный разбор заданий</li>
-                        <li>2 индивидуальные консультации</li>
-                        <li>Сертификат по окончании курса</li>
-                    </ul>
-                    <a href="#contact" class="btn">Выбрать</a>
-                </div>
-                <div class="pricing-plan animate">
-                    <h3>Премиум</h3>
-                    <div class="pricing-price">
-                        39 900 ₽ <span>/ единоразово</span>
-                    </div>
-                    <ul class="pricing-features">
-                        <li>Полный доступ ко всем материалам</li>
-                        <li>Пожизненный доступ к курсу</li>
-                        <li>Индивидуальный план обучения</li>
-                        <li>Еженедельные консультации с экспертом</li>
-                        <li>Приоритетная поддержка</li>
-                        <li>Доступ к закрытому сообществу</li>
-                        <li>Расширенный сертификат</li>
-                    </ul>
-                    <a href="#contact" class="btn">Выбрать</a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- FAQ -->
-    <section id="faq" class="faq">
-        <div class="container">
-            <h2>Часто задаваемые вопросы</h2>
-            <div class="faq-item">
-                <div class="faq-question">
-                    Какой уровень знаний нужен для прохождения курса?
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="faq-answer">
-                    <div class="faq-inner">
-                        <p>Наш курс подходит для учащихся с разным уровнем подготовки. Для начинающих мы предоставляем дополнительные материалы, которые помогут освоить базовые концепции. Однако, базовое понимание принципов работы в данной области будет полезным.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question">
-                    Как долго я буду иметь доступ к материалам курса?
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="faq-answer">
-                    <div class="faq-inner">
-                        <p>Срок доступа зависит от выбранного тарифа: Базовый - 3 месяца, Стандарт - 6 месяцев, Премиум - пожизненный доступ. После окончания курса вы всегда можете продлить доступ за дополнительную плату.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question">
-                    Могу ли я получить возврат средств, если курс мне не подойдет?
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="faq-answer">
-                    <div class="faq-inner">
-                        <p>Да, мы предоставляем гарантию возврата средств в течение 14 дней с момента покупки, если вы не удовлетворены качеством курса. Для этого вам необходимо связаться с нашей службой поддержки и объяснить причину возврата.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question">
-                    Будет ли индивидуальная поддержка во время обучения?
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="faq-answer">
-                    <div class="faq-inner">
-                        <p>Все тарифы включают базовую поддержку через комментарии к урокам. Тарифы "Стандарт" и "Премиум" включают дополнительные индивидуальные консультации с преподавателями. В тарифе "Премиум" предусмотрены еженедельные консультации с экспертом.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="faq-item">
-                <div class="faq-question">
-                    Получу ли я сертификат по окончании курса?
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="faq-answer">
-                    <div class="faq-inner">
-                        <p>Да, все студенты, успешно прошедшие курс и выполнившие все необходимые задания, получают сертификат об окончании. Сертификат подтверждает ваши новые компетенции и может быть использован для вашего портфолио или резюме.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contact -->
-    <section id="contact" class="contact">
-        <div class="container">
-            <h2>Свяжитесь с нами</h2>
-            <div class="contact-content">
-                <div class="contact-info animate">
-                    <h3>Контактная информация</h3>
-                    <p>Если у вас возникли вопросы о нашем курсе или вы хотите получить дополнительную информацию, свяжитесь с нами любым удобным способом:</p>
-                    <div class="contact-info-item">
-                        <i class="fas fa-phone"></i>
-                        <div>
-                            <p>+7 (999) 123-45-67</p>
-                        </div>
-                    </div>
-                    <div class="contact-info-item">
-                        <i class="fas fa-envelope"></i>
-                        <div>
-                            <p>info@palatovda.ru</p>
-                        </div>
-                    </div>
-                    <div class="contact-info-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <div>
-                            <p>г. Москва, ул. Примерная, д. 123</p>
-                        </div>
-                    </div>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-telegram"></i></a>
-                        <a href="#"><i class="fab fa-vk"></i></a>
-                    </div>
-                </div>
-                <div class="contact-form animate">
-                    <form action="#" method="POST">
-                        <div class="form-group">
-                            <label for="name">Ваше имя</label>
-                            <input type="text" id="name" name="name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" id="email" name="email" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="phone">Телефон</label>
-                            <input type="tel" id="phone" name="phone" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="message">Сообщение</label>
-                            <textarea id="message" name="message" required></textarea>
-                        </div>
-                        <button type="submit" class="btn">Отправить сообщение</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-column">
-                    <h3>PalatovDA</h3>
-                    <p>Онлайн курс обучения от PalatovDA - это ваш шаг к профессиональному развитию и новым карьерным возможностям.</p>
-                </div>
-                <div class="footer-column">
-                    <h3>Полезные ссылки</h3>
-                    <ul class="footer-links">
-                        <li><a href="#about">О курсе</a></li>
-                        <li><a href="#curriculum">Программа курса</a></li>
-                        <li><a href="#pricing">Тарифы</a></li>
-                        <li><a href="#faq">FAQ</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Подпишитесь на новости</h3>
-                    <p>Получайте информацию о новых курсах и специальных предложениях</p>
-                    <form class="footer-subscribe">
-                        <div class="form-group">
-                            <input type="email" placeholder="Ваш email" required>
-                            <button type="submit" class="btn">Подписаться</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2025 PalatovDA. Все права защищены.</p>
-            </div>
-        </div>
-    </footer>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // JavaScript для работы с меню, аккордеоном, анимациями и т.д.
-        document.addEventListener('DOMContentLoaded', function() {
-            // Мобильное меню
-            const mobileMenu = document.querySelector('.mobile-menu');
-            const nav = document.querySelector('nav');
-            
-            mobileMenu.addEventListener('click', function() {
-                this.classList.toggle('active');
-                nav.classList.toggle('active');
-            });
-            
-            // Анимация при скролле
-            const animateElements = document.querySelectorAll('.animate');
-            
-            function checkIfInView() {
-                animateElements.forEach(element => {
-                    const elementTop = element.getBoundingClientRect().top;
-                    const windowHeight = window.innerHeight;
-                    
-                    if (elementTop < windowHeight - 100) {
-                        element.classList.add('active');
-                    }
+        // Initialize Firebase with your config
+            const firebaseConfig = {
+      apiKey: "AIzaSyATqUt4BN0PXk7uNcIz926UI2ni32tluL4",
+      authDomain: "onlineponggame.firebaseapp.com",
+      projectId: "onlineponggame",
+      storageBucket: "onlineponggame.firebasestorage.app",
+      messagingSenderId: "772131888184",
+      appId: "1:772131888184:web:e1e181458026208fa35acd"
+    };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Game elements
+        const paddleA = document.getElementById('paddleA');
+        const paddleB = document.getElementById('paddleB');
+        const ball = document.getElementById('ball');
+        const scoreElement = document.getElementById('score');
+        const waitingElement = document.getElementById('waiting');
+        const startScreen = document.getElementById('startScreen');
+        const createGameBtn = document.getElementById('createGameBtn');
+        const joinGameBtn = document.getElementById('joinGameBtn');
+        const gameLinkElement = document.getElementById('gameLink');
+
+        // Game variables
+        let gameId = null;
+        let playerRole = null; // 'playerA' or 'playerB'
+        let gameRef = null;
+        let scoreA = 0;
+        let scoreB = 0;
+
+        // Paddle movement
+        document.addEventListener('keydown', (e) => {
+            if (!gameRef || !playerRole) return;
+
+            const paddleSpeed = 20;
+            const paddleRef = gameRef.child('paddles').child(playerRole);
+
+            if (e.key === 'ArrowUp') {
+                paddleRef.transaction((currentPos) => {
+                    return Math.max(0, (currentPos || 200) - paddleSpeed);
+                });
+            } else if (e.key === 'ArrowDown') {
+                paddleRef.transaction((currentPos) => {
+                    return Math.min(400, (currentPos || 200) + paddleSpeed);
                 });
             }
-            
-            // Запускаем проверку при загрузке и скролле
-            window.addEventListener('load', checkIfInView);
-            window.addEventListener('scroll', checkIfInView);
-            
-            // Изменение хедера при скролле
-            const header = document.querySelector('header');
-            
-            window.addEventListener('scroll', function() {
-                if (window.scrollY > 50) {
-                    header.classList.add('scrolled');
-                } else {
-                    header.classList.remove('scrolled');
+        });
+
+        // Create new game
+        createGameBtn.addEventListener('click', () => {
+            gameId = 'game_' + Math.random().toString(36).substr(2, 9);
+            playerRole = 'playerA';
+
+            // Create game in Firebase
+            gameRef = database.ref('games/' + gameId);
+            gameRef.set({
+                paddles: {
+                    playerA: 200,
+                    playerB: 200
+                },
+                ball: {
+                    x: 400,
+                    y: 250
+                },
+                score: {
+                    playerA: 0,
+                    playerB: 0
+                },
+                status: 'waiting'
+            });
+
+            // Show waiting screen
+            startScreen.style.display = 'none';
+            waitingElement.style.display = 'block';
+            gameLinkElement.innerHTML = window.location.href.split('?')[0] + '?game=' + gameId;
+
+            // Listen for game updates
+            setupGameListener();
+        });
+
+        // Join existing game
+        joinGameBtn.addEventListener('click', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const joinGameId = urlParams.get('game');
+
+            if (joinGameId) {
+                gameId = joinGameId;
+                playerRole = 'playerB';
+
+                // Join game in Firebase
+                gameRef = database.ref('games/' + gameId);
+                gameRef.update({
+                    status: 'playing'
+                });
+
+                // Hide start screen
+                startScreen.style.display = 'none';
+
+                // Listen for game updates
+                setupGameListener();
+            } else {
+                gameId = prompt('Enter game ID to join:');
+                if (gameId) {
+                    playerRole = 'playerB';
+                    gameRef = database.ref('games/' + gameId);
+
+                    // Check if game exists
+                    gameRef.once('value', (snapshot) => {
+                        if (snapshot.exists()) {
+                            gameRef.update({
+                                status: 'playing'
+                            });
+                            startScreen.style.display = 'none';
+                            setupGameListener();
+                        } else {
+                            alert('Game not found!');
+                        }
+                    });
+                }
+            }
+        });
+
+        // Check for game ID in URL
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('game')) {
+                joinGameBtn.click();
+            }
+        });
+
+        // Setup game listener
+        function setupGameListener() {
+            gameRef.on('value', (snapshot) => {
+                const gameData = snapshot.val();
+
+                if (!gameData) {
+                    alert('Game ended!');
+                    window.location.reload();
+                    return;
+                }
+
+                // Update paddles
+                paddleA.style.top = gameData.paddles.playerA + 'px';
+                paddleB.style.top = gameData.paddles.playerB + 'px';
+
+                // Update ball
+                ball.style.left = gameData.ball.x + 'px';
+                ball.style.top = gameData.ball.y + 'px';
+
+                // Update score
+                scoreA = gameData.score.playerA;
+                scoreB = gameData.score.playerB;
+                scoreElement.textContent = `${scoreA} : ${scoreB}`;
+
+                // Hide waiting screen when game starts
+                if (gameData.status === 'playing') {
+                    waitingElement.style.display = 'none';
                 }
             });
-            
-            // Аккордеон для программы курса
-            const accordionHeaders = document.querySelectorAll('.accordion-header');
-            
-            accordionHeaders.forEach(header => {
-                header.addEventListener('click', function() {
-                    this.classList.toggle('active');
-                    const content = this.nextElementSibling;
-                    
-                    if (this.classList.contains('active')) {
-                        content.style.maxHeight = content.scrollHeight + 'px';
-                    } else {
-                        content.style.maxHeight = 0;
-                    }
-                });
-            });
-            
-            // Аккордеон для FAQ
-            const faqQuestions = document.querySelectorAll('.faq-question');
-            
-            faqQuestions.forEach(question => {
-                question.addEventListener('click', function() {
-                    this.classList.toggle('active');
-                    const answer = this.nextElementSibling;
-                    
-                    if (this.classList.contains('active')) {
-                        answer.style.maxHeight = answer.scrollHeight + 'px';
-                    } else {
-                        answer.style.maxHeight = 0;
-                    }
-                });
-            });
-            
-            // Слайдер отзывов
-            const slides = document.querySelector('.testimonial-slides');
-            const dots = document.querySelectorAll('.testimonial-dot');
-            let currentSlide = 0;
-            
-            function goToSlide(n) {
-                slides.style.transform = `translateX(-${n * 100}%)`;
-                dots.forEach((dot, i) => {
-                    dot.classList.toggle('active', i === n);
-                });
-                currentSlide = n;
-            }
-            
-            dots.forEach((dot, i) => {
-                dot.addEventListener('click', () => goToSlide(i));
-            });
-            
-            // Автопереключение слайдов
+        }
+
+        // Simple game logic (would normally be on server)
+        // For simplicity, we'll just update the ball position here
+        // In a real game, this would be handled by the server or a cloud function
+        if (playerRole === 'playerA') {
             setInterval(() => {
-                currentSlide = (currentSlide + 1) % dots.length;
-                goToSlide(currentSlide);
-            }, 5000);
-            
-            // Плавная прокрутка к секциям
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    const targetId = this.getAttribute('href');
-                    const targetElement = document.querySelector(targetId);
-                    
-                    if (targetElement) {
-                        window.scrollTo({
-                            top: targetElement.offsetTop - 80,
-                            behavior: 'smooth'
-                        });
-                        
-                        // Закрываем мобильное меню при клике на ссылку
-                        if (nav.classList.contains('active')) {
-                            nav.classList.remove('active');
-                            mobileMenu.classList.remove('active');
-                        }
+                if (!gameRef) return;
+
+                gameRef.child('ball').transaction((ballData) => {
+                    if (!ballData) return {x: 400, y: 250, dx: 2, dy: 2};
+
+                    // Simple ball movement
+                    let newX = (ballData.x || 400) + (ballData.dx || 2);
+                    let newY = (ballData.y || 250) + (ballData.dy || 2);
+
+                    // Ball collision with top and bottom
+                    if (newY <= 0 || newY >= 485) {
+                        ballData.dy = -(ballData.dy || 2);
+                        newY = (ballData.y || 250) + (ballData.dy || 2);
                     }
+
+                    // Ball collision with paddles (simplified)
+                    const paddleAPos = gameRef.child('paddles').child('playerA').once('value');
+                    const paddleBPos = gameRef.child('paddles').child('playerB').once('value');
+
+                    // Score points and reset ball
+                    if (newX <= 0) {
+                        gameRef.child('score').child('playerB').transaction((score) => (score || 0) + 1);
+                        return {x: 400, y: 250, dx: 2, dy: 2};
+                    }
+
+                    if (newX >= 785) {
+                        gameRef.child('score').child('playerA').transaction((score) => (score || 0) + 1);
+                        return {x: 400, y: 250, dx: -2, dy: 2};
+                    }
+
+                    return {x: newX, y: newY, dx: ballData.dx, dy: ballData.dy};
                 });
-            });
-        });
+            }, 16);
+        }
     </script>
 </body>
 </html>
