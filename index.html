@@ -1,331 +1,151 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Online Pong Game</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #222;
-            font-family: Arial, sans-serif;
-            color: white;
-        }
-
-        #gameContainer {
-            position: relative;
-            width: 800px;
-            height: 500px;
-            background-color: #000;
-            border: 2px solid #444;
-            overflow: hidden;
-        }
-
-        #paddleA, #paddleB {
-            position: absolute;
-            width: 15px;
-            height: 100px;
-            background-color: white;
-        }
-
-        #paddleA {
-            left: 20px;
-            top: 200px;
-        }
-
-        #paddleB {
-            right: 20px;
-            top: 200px;
-        }
-
-        #ball {
-            position: absolute;
-            width: 15px;
-            height: 15px;
-            background-color: white;
-            border-radius: 50%;
-            top: 250px;
-            left: 400px;
-        }
-
-        #score {
-            position: absolute;
-            top: 20px;
-            width: 100%;
-            text-align: center;
-            font-size: 24px;
-        }
-
-        #waiting {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-
-        #startScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-
-        button {
-            padding: 10px 20px;
-            font-size: 18px;
-            margin: 10px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        }
-
-        button:hover {
-            background-color: #45a049;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Крестики-нолики Онлайн</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+    #game {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 5px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .cell {
+      width: 100px;
+      height: 100px;
+      font-size: 2em;
+      background: white;
+      border: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .cell.taken {
+      pointer-events: none;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
 </head>
 <body>
-    <div id="gameContainer">
-        <div id="paddleA"></div>
-        <div id="paddleB"></div>
-        <div id="ball"></div>
-        <div id="score">0 : 0</div>
+  <h1>Крестики-нолики Онлайн</h1>
+  <div id="game"></div>
+  <p id="status">Загрузка...</p>
 
-        <div id="waiting" style="display: none;">
-            <h2>Waiting for opponent...</h2>
-            <p>Share this link with a friend to play together</p>
-            <div id="gameLink"></div>
-        </div>
+  <script>
+    // 🔧 ЗАМЕНИ НА СВОЙ config из Firebase:
+    const firebaseConfig = {
+  apiKey: "AIzaSyATqUt4BN0PXk7uNcIz926UI2ni32tluL4",
+  authDomain: "onlineponggame.firebaseapp.com",
+  projectId: "onlineponggame",
+  storageBucket: "onlineponggame.firebasestorage.app",
+  messagingSenderId: "772131888184",
+  appId: "1:772131888184:web:e1e181458026208fa35acd"
+};
 
-        <div id="startScreen">
-            <h1>Online Pong Game</h1>
-            <button id="createGameBtn">Create Game</button>
-            <button id="joinGameBtn">Join Game</button>
-        </div>
-    </div>
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    const gameDiv = document.getElementById("game");
+    const statusText = document.getElementById("status");
+    let playerSymbol = "";
+    let gameId = prompt("Введите ID комнаты (оставь пустым для создания):");
 
-    <script>
-        // Initialize Firebase with your config
-            const firebaseConfig = {
-      apiKey: "AIzaSyATqUt4BN0PXk7uNcIz926UI2ni32tluL4",
-      authDomain: "onlineponggame.firebaseapp.com",
-      projectId: "onlineponggame",
-      storageBucket: "onlineponggame.firebasestorage.app",
-      messagingSenderId: "772131888184",
-      appId: "1:772131888184:web:e1e181458026208fa35acd"
-    };
+    const cells = [];
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+    // создание HTML клеток
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.dataset.index = i;
+      cell.addEventListener("click", () => makeMove(i));
+      gameDiv.appendChild(cell);
+      cells.push(cell);
+    }
 
-        // Game elements
-        const paddleA = document.getElementById('paddleA');
-        const paddleB = document.getElementById('paddleB');
-        const ball = document.getElementById('ball');
-        const scoreElement = document.getElementById('score');
-        const waitingElement = document.getElementById('waiting');
-        const startScreen = document.getElementById('startScreen');
-        const createGameBtn = document.getElementById('createGameBtn');
-        const joinGameBtn = document.getElementById('joinGameBtn');
-        const gameLinkElement = document.getElementById('gameLink');
+    function updateBoard(board) {
+      board.forEach((val, i) => {
+        cells[i].textContent = val;
+        if (val !== "") cells[i].classList.add("taken");
+      });
+    }
 
-        // Game variables
-        let gameId = null;
-        let playerRole = null; // 'playerA' or 'playerB'
-        let gameRef = null;
-        let scoreA = 0;
-        let scoreB = 0;
-
-        // Paddle movement
-        document.addEventListener('keydown', (e) => {
-            if (!gameRef || !playerRole) return;
-
-            const paddleSpeed = 20;
-            const paddleRef = gameRef.child('paddles').child(playerRole);
-
-            if (e.key === 'ArrowUp') {
-                paddleRef.transaction((currentPos) => {
-                    return Math.max(0, (currentPos || 200) - paddleSpeed);
-                });
-            } else if (e.key === 'ArrowDown') {
-                paddleRef.transaction((currentPos) => {
-                    return Math.min(400, (currentPos || 200) + paddleSpeed);
-                });
-            }
+    function makeMove(index) {
+      db.ref("games/" + gameId).once("value", (snapshot) => {
+        const data = snapshot.val();
+        if (!data || data.board[index] !== "" || data.turn !== playerSymbol) return;
+        data.board[index] = playerSymbol;
+        const winner = checkWin(data.board);
+        db.ref("games/" + gameId).update({
+          board: data.board,
+          turn: playerSymbol === "X" ? "O" : "X",
+          winner: winner
         });
+      });
+    }
 
-        // Create new game
-        createGameBtn.addEventListener('click', () => {
-            gameId = 'game_' + Math.random().toString(36).substr(2, 9);
-            playerRole = 'playerA';
+    function checkWin(board) {
+      const wins = [
+        [0,1,2], [3,4,5], [6,7,8],
+        [0,3,6], [1,4,7], [2,5,8],
+        [0,4,8], [2,4,6]
+      ];
+      for (let [a,b,c] of wins) {
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+      }
+      if (board.every(cell => cell !== "")) return "Ничья";
+      return null;
+    }
 
-            // Create game in Firebase
-            gameRef = database.ref('games/' + gameId);
-            gameRef.set({
-                paddles: {
-                    playerA: 200,
-                    playerB: 200
-                },
-                ball: {
-                    x: 400,
-                    y: 250
-                },
-                score: {
-                    playerA: 0,
-                    playerB: 0
-                },
-                status: 'waiting'
-            });
-
-            // Show waiting screen
-            startScreen.style.display = 'none';
-            waitingElement.style.display = 'block';
-            gameLinkElement.innerHTML = window.location.href.split('?')[0] + '?game=' + gameId;
-
-            // Listen for game updates
-            setupGameListener();
-        });
-
-        // Join existing game
-        joinGameBtn.addEventListener('click', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const joinGameId = urlParams.get('game');
-
-            if (joinGameId) {
-                gameId = joinGameId;
-                playerRole = 'playerB';
-
-                // Join game in Firebase
-                gameRef = database.ref('games/' + gameId);
-                gameRef.update({
-                    status: 'playing'
-                });
-
-                // Hide start screen
-                startScreen.style.display = 'none';
-
-                // Listen for game updates
-                setupGameListener();
-            } else {
-                gameId = prompt('Enter game ID to join:');
-                if (gameId) {
-                    playerRole = 'playerB';
-                    gameRef = database.ref('games/' + gameId);
-
-                    // Check if game exists
-                    gameRef.once('value', (snapshot) => {
-                        if (snapshot.exists()) {
-                            gameRef.update({
-                                status: 'playing'
-                            });
-                            startScreen.style.display = 'none';
-                            setupGameListener();
-                        } else {
-                            alert('Game not found!');
-                        }
-                    });
-                }
-            }
-        });
-
-        // Check for game ID in URL
-        window.addEventListener('load', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('game')) {
-                joinGameBtn.click();
-            }
-        });
-
-        // Setup game listener
-        function setupGameListener() {
-            gameRef.on('value', (snapshot) => {
-                const gameData = snapshot.val();
-
-                if (!gameData) {
-                    alert('Game ended!');
-                    window.location.reload();
-                    return;
-                }
-
-                // Update paddles
-                paddleA.style.top = gameData.paddles.playerA + 'px';
-                paddleB.style.top = gameData.paddles.playerB + 'px';
-
-                // Update ball
-                ball.style.left = gameData.ball.x + 'px';
-                ball.style.top = gameData.ball.y + 'px';
-
-                // Update score
-                scoreA = gameData.score.playerA;
-                scoreB = gameData.score.playerB;
-                scoreElement.textContent = `${scoreA} : ${scoreB}`;
-
-                // Hide waiting screen when game starts
-                if (gameData.status === 'playing') {
-                    waitingElement.style.display = 'none';
-                }
-            });
+    function watchGame() {
+      db.ref("games/" + gameId).on("value", (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        updateBoard(data.board);
+        if (data.winner) {
+          statusText.textContent = data.winner === "Ничья" ? "Ничья!" : `Победил: ${data.winner}`;
+          gameDiv.querySelectorAll(".cell").forEach(cell => cell.classList.add("taken"));
+        } else {
+          statusText.textContent = data.turn === playerSymbol ? "Ваш ход" : "Ход соперника";
         }
+      });
+    }
 
-        // Simple game logic (would normally be on server)
-        // For simplicity, we'll just update the ball position here
-        // In a real game, this would be handled by the server or a cloud function
-        if (playerRole === 'playerA') {
-            setInterval(() => {
-                if (!gameRef) return;
-
-                gameRef.child('ball').transaction((ballData) => {
-                    if (!ballData) return {x: 400, y: 250, dx: 2, dy: 2};
-
-                    // Simple ball movement
-                    let newX = (ballData.x || 400) + (ballData.dx || 2);
-                    let newY = (ballData.y || 250) + (ballData.dy || 2);
-
-                    // Ball collision with top and bottom
-                    if (newY <= 0 || newY >= 485) {
-                        ballData.dy = -(ballData.dy || 2);
-                        newY = (ballData.y || 250) + (ballData.dy || 2);
-                    }
-
-                    // Ball collision with paddles (simplified)
-                    const paddleAPos = gameRef.child('paddles').child('playerA').once('value');
-                    const paddleBPos = gameRef.child('paddles').child('playerB').once('value');
-
-                    // Score points and reset ball
-                    if (newX <= 0) {
-                        gameRef.child('score').child('playerB').transaction((score) => (score || 0) + 1);
-                        return {x: 400, y: 250, dx: 2, dy: 2};
-                    }
-
-                    if (newX >= 785) {
-                        gameRef.child('score').child('playerA').transaction((score) => (score || 0) + 1);
-                        return {x: 400, y: 250, dx: -2, dy: 2};
-                    }
-
-                    return {x: newX, y: newY, dx: ballData.dx, dy: ballData.dy};
-                });
-            }, 16);
+    if (!gameId) {
+      gameId = Math.random().toString(36).substring(2, 8);
+      alert("Создана комната: " + gameId);
+      playerSymbol = "X";
+      db.ref("games/" + gameId).set({
+        board: Array(9).fill(""),
+        turn: "X",
+        players: 1
+      });
+      statusText.textContent = "Ожидание второго игрока...";
+      watchGame();
+    } else {
+      db.ref("games/" + gameId).once("value", snapshot => {
+        const data = snapshot.val();
+        if (data && data.players === 1) {
+          db.ref("games/" + gameId + "/players").set(2);
+          playerSymbol = "O";
+          statusText.textContent = "Вы играете за O";
+          watchGame();
+        } else if (!data) {
+          alert("Комната не найдена");
+        } else {
+          alert("Комната заполнена");
         }
-    </script>
+      });
+    }
+  </script>
 </body>
 </html>
