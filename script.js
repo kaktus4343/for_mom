@@ -1,12 +1,11 @@
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCtau2mrriZk65wi9F6cKo45YpirhWQ2H0",
-  authDomain: "tic-tac-toe-firebase-ad48c.firebaseapp.com",
-  databaseURL: "https://tic-tac-toe-firebase-ad48c-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "tic-tac-toe-firebase-ad48c",
-  storageBucket: "tic-tac-toe-firebase-ad48c.firebasestorage.app",
-  messagingSenderId: "633041662557",
-  appId: "1:633041662557:web:ab29b3aaa085d54cf253b4"
+  apiKey: "AIzaSyATqUt4BN0PXk7uNcIz926UI2ni32tluL4",
+  authDomain: "onlineponggame.firebaseapp.com",
+  projectId: "onlineponggame",
+  storageBucket: "onlineponggame.firebasestorage.app",
+  messagingSenderId: "772131888184",
+  appId: "1:772131888184:web:e1e181458026208fa35acd"
 };
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
