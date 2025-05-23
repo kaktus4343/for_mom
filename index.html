@@ -1,151 +1,27 @@
+
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Крестики-нолики Онлайн</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      background: #f0f0f0;
-      padding: 20px;
-    }
-    #game {
-      display: grid;
-      grid-template-columns: repeat(3, 100px);
-      gap: 5px;
-      justify-content: center;
-      margin-top: 20px;
-    }
-    .cell {
-      width: 100px;
-      height: 100px;
-      font-size: 2em;
-      background: white;
-      border: 1px solid #ccc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-    .cell.taken {
-      pointer-events: none;
-    }
-  </style>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Tic Tac Toe Multiplayer</title>
+    <style>
+        body { font-family: Arial; text-align: center; margin: 0; padding: 0; background: #f2f2f2; }
+        h1 { margin-top: 20px; }
+        #board { display: grid; grid-template-columns: repeat(3, 100px); margin: 20px auto; gap: 5px; }
+        .cell { width: 100px; height: 100px; font-size: 2em; background: white; border: 2px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+    </style>
 </head>
 <body>
-  <h1>Крестики-нолики Онлайн</h1>
-  <div id="game"></div>
-  <p id="status">Загрузка...</p>
-
-  <script>
-    // 🔧 ЗАМЕНИ НА СВОЙ config из Firebase:
-    const firebaseConfig = {
-  apiKey: "AIzaSyATqUt4BN0PXk7uNcIz926UI2ni32tluL4",
-  authDomain: "onlineponggame.firebaseapp.com",
-  projectId: "onlineponggame",
-  storageBucket: "onlineponggame.firebasestorage.app",
-  messagingSenderId: "772131888184",
-  appId: "1:772131888184:web:e1e181458026208fa35acd"
-};
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    const gameDiv = document.getElementById("game");
-    const statusText = document.getElementById("status");
-    let playerSymbol = "";
-    let gameId = prompt("Введите ID комнаты (оставь пустым для создания):");
-
-    const cells = [];
-
-    // создание HTML клеток
-    for (let i = 0; i < 9; i++) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      cell.dataset.index = i;
-      cell.addEventListener("click", () => makeMove(i));
-      gameDiv.appendChild(cell);
-      cells.push(cell);
-    }
-
-    function updateBoard(board) {
-      board.forEach((val, i) => {
-        cells[i].textContent = val;
-        if (val !== "") cells[i].classList.add("taken");
-      });
-    }
-
-    function makeMove(index) {
-      db.ref("games/" + gameId).once("value", (snapshot) => {
-        const data = snapshot.val();
-        if (!data || data.board[index] !== "" || data.turn !== playerSymbol) return;
-        data.board[index] = playerSymbol;
-        const winner = checkWin(data.board);
-        db.ref("games/" + gameId).update({
-          board: data.board,
-          turn: playerSymbol === "X" ? "O" : "X",
-          winner: winner
-        });
-      });
-    }
-
-    function checkWin(board) {
-      const wins = [
-        [0,1,2], [3,4,5], [6,7,8],
-        [0,3,6], [1,4,7], [2,5,8],
-        [0,4,8], [2,4,6]
-      ];
-      for (let [a,b,c] of wins) {
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
-      }
-      if (board.every(cell => cell !== "")) return "Ничья";
-      return null;
-    }
-
-    function watchGame() {
-      db.ref("games/" + gameId).on("value", (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-        updateBoard(data.board);
-        if (data.winner) {
-          statusText.textContent = data.winner === "Ничья" ? "Ничья!" : `Победил: ${data.winner}`;
-          gameDiv.querySelectorAll(".cell").forEach(cell => cell.classList.add("taken"));
-        } else {
-          statusText.textContent = data.turn === playerSymbol ? "Ваш ход" : "Ход соперника";
-        }
-      });
-    }
-
-    if (!gameId) {
-      gameId = Math.random().toString(36).substring(2, 8);
-      alert("Создана комната: " + gameId);
-      playerSymbol = "X";
-      db.ref("games/" + gameId).set({
-        board: Array(9).fill(""),
-        turn: "X",
-        players: 1
-      });
-      statusText.textContent = "Ожидание второго игрока...";
-      watchGame();
-    } else {
-      db.ref("games/" + gameId).once("value", snapshot => {
-        const data = snapshot.val();
-        if (data && data.players === 1) {
-          db.ref("games/" + gameId + "/players").set(2);
-          playerSymbol = "O";
-          statusText.textContent = "Вы играете за O";
-          watchGame();
-        } else if (!data) {
-          alert("Комната не найдена");
-        } else {
-          alert("Комната заполнена");
-        }
-      });
-    }
-  </script>
+    <h1>Tic Tac Toe Multiplayer</h1>
+    <button onclick="createGame()">Создать игру</button>
+    <input type="text" id="roomInput" placeholder="Код комнаты">
+    <button onclick="joinGame()">Присоединиться</button>
+    <div id="info"></div>
+    <div id="board"></div>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
