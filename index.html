@@ -5,33 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Крестики-нолики Онлайн</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      background: #f0f0f0;
-      padding: 20px;
-    }
-    #game {
-      display: grid;
-      grid-template-columns: repeat(3, 100px);
-      gap: 5px;
-      justify-content: center;
-      margin-top: 20px;
-    }
+    body { font-family: sans-serif; text-align: center; padding: 20px; background: #f5f5f5; }
+    #game { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; margin: 20px auto; width: 320px; }
     .cell {
-      width: 100px;
-      height: 100px;
-      font-size: 2em;
-      background: white;
-      border: 1px solid #ccc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
+      width: 100px; height: 100px; background: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2em; border: 1px solid #ccc; cursor: pointer;
     }
-    .cell.taken {
-      pointer-events: none;
-    }
+    .cell.taken { pointer-events: none; color: #888; }
   </style>
   <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
@@ -57,16 +38,19 @@
 
     const gameDiv = document.getElementById("game");
     const statusText = document.getElementById("status");
-    let playerSymbol = "";
-    let gameId = prompt("Введите ID комнаты (оставь пустым для создания):");
-
     const cells = [];
+    let playerSymbol = "";
+    let gameId = prompt("Введите ID комнаты (оставь пустым для новой):");
+    let isMyTurn = false;
 
     for (let i = 0; i < 9; i++) {
       const cell = document.createElement("div");
       cell.className = "cell";
       cell.dataset.index = i;
-      cell.addEventListener("click", () => makeMove(i));
+      cell.addEventListener("click", () => {
+        if (!isMyTurn) return;
+        makeMove(i);
+      });
       gameDiv.appendChild(cell);
       cells.push(cell);
     }
@@ -74,17 +58,19 @@
     function updateBoard(board) {
       board.forEach((val, i) => {
         cells[i].textContent = val;
-        if (val !== "") cells[i].classList.add("taken");
+        if (val) cells[i].classList.add("taken");
       });
     }
 
     function makeMove(index) {
-      db.ref("games/" + gameId).once("value", (snapshot) => {
-        const data = snapshot.val();
+      db.ref(`games/${gameId}`).once("value", (snap) => {
+        const data = snap.val();
         if (!data || data.board[index] !== "" || data.turn !== playerSymbol || data.winner) return;
+
         data.board[index] = playerSymbol;
         const winner = checkWin(data.board);
-        db.ref("games/" + gameId).update({
+
+        db.ref(`games/${gameId}`).update({
           board: data.board,
           turn: playerSymbol === "X" ? "O" : "X",
           winner: winner
@@ -92,59 +78,66 @@
       });
     }
 
-    function checkWin(board) {
-      const wins = [
-        [0,1,2], [3,4,5], [6,7,8],
-        [0,3,6], [1,4,7], [2,5,8],
-        [0,4,8], [2,4,6]
-      ];
-      for (let [a,b,c] of wins) {
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+    function checkWin(b) {
+      const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for (const [a,b1,c] of lines) {
+        if (b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a];
       }
-      if (board.every(cell => cell !== "")) return "Ничья";
-      return null;
+      return b.every(v => v) ? "Ничья" : null;
     }
 
     function watchGame() {
-      db.ref("games/" + gameId).on("value", (snapshot) => {
-        const data = snapshot.val();
+      db.ref(`games/${gameId}`).on("value", (snap) => {
+        const data = snap.val();
         if (!data) return;
+
         updateBoard(data.board);
         if (data.winner) {
           statusText.textContent = data.winner === "Ничья" ? "Ничья!" : `Победил: ${data.winner}`;
-          gameDiv.querySelectorAll(".cell").forEach(cell => cell.classList.add("taken"));
+          isMyTurn = false;
         } else {
-          statusText.textContent = data.turn === playerSymbol ? "Ваш ход" : "Ход соперника";
+          isMyTurn = data.turn === playerSymbol;
+          statusText.textContent = isMyTurn ? "Ваш ход" : "Ход соперника";
         }
       });
     }
 
-    if (!gameId) {
-      gameId = Math.random().toString(36).substring(2, 8);
-      alert("Создана комната: " + gameId);
-      playerSymbol = "X";
-      db.ref("games/" + gameId).set({
-        board: Array(9).fill(""),
-        turn: "X",
-        players: 1
-      });
-      statusText.textContent = "Ожидание второго игрока...";
-      watchGame();
-    } else {
-      db.ref("games/" + gameId).once("value", snapshot => {
-        const data = snapshot.val();
-        if (data && data.players === 1) {
-          db.ref("games/" + gameId + "/players").set(2);
-          playerSymbol = "O";
-          statusText.textContent = "Вы играете за O";
-          watchGame();
-        } else if (!data) {
-          alert("Комната не найдена");
-        } else {
-          alert("Комната заполнена");
-        }
-      });
+    function startGame() {
+      if (!gameId) {
+        gameId = Math.random().toString(36).substr(2, 6);
+        alert("Создана комната: " + gameId);
+        playerSymbol = "X";
+        db.ref(`games/${gameId}`).set({
+          board: Array(9).fill(""),
+          turn: "X",
+          winner: null,
+          players: 1
+        });
+        watchGame();
+        statusText.textContent = "Ожидание второго игрока...";
+        db.ref(`games/${gameId}/players`).on("value", snap => {
+          if (snap.val() === 2) statusText.textContent = "Вы играете за X";
+        });
+      } else {
+        db.ref(`games/${gameId}`).once("value", snap => {
+          const data = snap.val();
+          if (!data) {
+            alert("Комната не найдена");
+            return;
+          }
+          if (data.players === 1) {
+            playerSymbol = "O";
+            db.ref(`games/${gameId}/players`).set(2);
+            statusText.textContent = "Вы играете за O";
+            watchGame();
+          } else {
+            alert("Комната уже занята");
+          }
+        });
+      }
     }
+
+    startGame();
   </script>
 </body>
 </html>
