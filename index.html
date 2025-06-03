@@ -1,28 +1,13 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Крестики-нолики Онлайн</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; background: #f5f5f5; }
-    #game { display: grid; grid-template-columns: repeat(3, 100px); gap: 5px; margin: 20px auto; width: 320px; }
-    .cell {
-      width: 100px; height: 100px; background: white;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 2em; border: 1px solid #ccc; cursor: pointer;
-    }
-    .cell.taken { pointer-events: none; color: #888; }
-  </style>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
-</head>
-<body>
-  <h1>Крестики-нолики Онлайн</h1>
-  <div id="game"></div>
-  <p id="status">Загрузка...</p>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Онлайн Квиз</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyADcCmBpiQNmhDrU2WCYCrB3CAE2DIqv6g",
       authDomain: "tic-tac-toe-online-2b731.firebaseapp.com",
@@ -33,111 +18,180 @@
       appId: "1:228936139438:web:d065d36ffbb4c2d6e9e33f"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    const gameDiv = document.getElementById("game");
-    const statusText = document.getElementById("status");
-    const cells = [];
-    let playerSymbol = "";
-    let gameId = prompt("Введите ID комнаты (оставь пустым для новой):");
-    let isMyTurn = false;
+    let playerName = "";
+    let playerId = "";
+    let lobbyId = "";
+    let isHost = false;
+    let currentQuestionIndex = 0;
+    let questions = [];
 
-    for (let i = 0; i < 9; i++) {
-      const cell = document.createElement("div");
-      cell.className = "cell";
-      cell.dataset.index = i;
-      cell.addEventListener("click", () => {
-        if (!isMyTurn) return;
-        makeMove(i);
+    const screens = {
+      nameInput: document.getElementById("name-screen"),
+      lobbyScreen: document.getElementById("lobby-screen"),
+      gameScreen: document.getElementById("game-screen"),
+      resultScreen: document.getElementById("result-screen")
+    };
+
+    function showScreen(screenId) {
+      Object.values(screens).forEach(s => s.style.display = "none");
+      screens[screenId].style.display = "block";
+    }
+
+    async function createLobby() {
+      lobbyId = Math.random().toString(36).substr(2, 6);
+      isHost = true;
+      const theme = document.getElementById("theme").value;
+      const qSnap = await getDocs(query(collection(db, "questions"), where("theme", "==", theme)));
+      questions = shuffle([...qSnap.docs]).slice(0, 10).map(d => ({ id: d.id, ...d.data() }));
+      await setDoc(doc(db, "lobbies", lobbyId), {
+        hostId: playerId,
+        status: "waiting",
+        theme,
+        currentQuestion: 0,
+        questionIds: questions.map(q => q.id)
       });
-      gameDiv.appendChild(cell);
-      cells.push(cell);
-    }
-
-    function updateBoard(board) {
-      board.forEach((val, i) => {
-        cells[i].textContent = val;
-        if (val) cells[i].classList.add("taken");
+      await setDoc(doc(db, `lobbies/${lobbyId}/players`, playerId), {
+        name: playerName,
+        score: 0,
+        answers: []
       });
+      listenLobby();
+      showScreen("lobbyScreen");
     }
 
-    function makeMove(index) {
-      db.ref(`games/${gameId}`).once("value", (snap) => {
-        const data = snap.val();
-        if (!data || data.board[index] !== "" || data.turn !== playerSymbol || data.winner) return;
-
-        data.board[index] = playerSymbol;
-        const winner = checkWin(data.board);
-
-        db.ref(`games/${gameId}`).update({
-          board: data.board,
-          turn: playerSymbol === "X" ? "O" : "X",
-          winner: winner
-        });
+    async function joinLobby() {
+      lobbyId = document.getElementById("join-code").value;
+      const lobbyRef = doc(db, "lobbies", lobbyId);
+      const lobbySnap = await getDoc(lobbyRef);
+      if (!lobbySnap.exists()) return alert("Лобби не найдено");
+      await setDoc(doc(db, `lobbies/${lobbyId}/players`, playerId), {
+        name: playerName,
+        score: 0,
+        answers: []
       });
+      listenLobby();
+      showScreen("lobbyScreen");
     }
 
-    function checkWin(b) {
-      const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-      for (const [a,b1,c] of lines) {
-        if (b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a];
-      }
-      return b.every(v => v) ? "Ничья" : null;
-    }
-
-    function watchGame() {
-      db.ref(`games/${gameId}`).on("value", (snap) => {
-        const data = snap.val();
-        if (!data) return;
-
-        updateBoard(data.board);
-        if (data.winner) {
-          statusText.textContent = data.winner === "Ничья" ? "Ничья!" : `Победил: ${data.winner}`;
-          isMyTurn = false;
-        } else {
-          isMyTurn = data.turn === playerSymbol;
-          statusText.textContent = isMyTurn ? "Ваш ход" : "Ход соперника";
+    function listenLobby() {
+      const lobbyRef = doc(db, "lobbies", lobbyId);
+      onSnapshot(lobbyRef, async (snap) => {
+        const data = snap.data();
+        if (data.status === "started") {
+          const qSnap = await getDocs(collection(db, "questions"));
+          questions = data.questionIds.map(id => qSnap.docs.find(q => q.id === id).data());
+          showQuestion();
+        } else if (data.status === "finished") {
+          showResults();
         }
       });
+      const playersRef = collection(db, `lobbies/${lobbyId}/players`);
+      onSnapshot(playersRef, (snap) => {
+        const container = document.getElementById("players");
+        container.innerHTML = "";
+        snap.forEach(doc => {
+          const div = document.createElement("div");
+          div.textContent = doc.data().name;
+          container.appendChild(div);
+        });
+      });
     }
 
-    function startGame() {
-      if (!gameId) {
-        gameId = Math.random().toString(36).substr(2, 6);
-        alert("Создана комната: " + gameId);
-        playerSymbol = "X";
-        db.ref(`games/${gameId}`).set({
-          board: Array(9).fill(""),
-          turn: "X",
-          winner: null,
-          players: 1
-        });
-        watchGame();
-        statusText.textContent = "Ожидание второго игрока...";
-        db.ref(`games/${gameId}/players`).on("value", snap => {
-          if (snap.val() === 2) statusText.textContent = "Вы играете за X";
-        });
-      } else {
-        db.ref(`games/${gameId}`).once("value", snap => {
-          const data = snap.val();
-          if (!data) {
-            alert("Комната не найдена");
-            return;
-          }
-          if (data.players === 1) {
-            playerSymbol = "O";
-            db.ref(`games/${gameId}/players`).set(2);
-            statusText.textContent = "Вы играете за O";
-            watchGame();
-          } else {
-            alert("Комната уже занята");
-          }
-        });
+    function showQuestion() {
+      showScreen("gameScreen");
+      const q = questions[currentQuestionIndex];
+      document.getElementById("question").textContent = q.question;
+      const options = document.getElementById("options");
+      options.innerHTML = "";
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => submitAnswer(idx);
+        options.appendChild(btn);
+      });
+    }
+
+    async function submitAnswer(index) {
+      const playerRef = doc(db, `lobbies/${lobbyId}/players`, playerId);
+      const playerSnap = await getDoc(playerRef);
+      const player = playerSnap.data();
+      const correct = questions[currentQuestionIndex].answerIndex === index;
+      await updateDoc(playerRef, {
+        answers: [...player.answers, index],
+        score: player.score + (correct ? 1 : 0)
+      });
+      currentQuestionIndex++;
+      if (currentQuestionIndex < 10) showQuestion();
+      else if (isHost) await updateDoc(doc(db, "lobbies", lobbyId), { status: "finished" });
+    }
+
+    async function showResults() {
+      showScreen("resultScreen");
+      const snap = await getDocs(collection(db, `lobbies/${lobbyId}/players`));
+      const results = [];
+      snap.forEach(doc => {
+        const d = doc.data();
+        results.push({ name: d.name, score: d.score });
+      });
+      results.sort((a, b) => b.score - a.score);
+      const resBox = document.getElementById("results");
+      resBox.innerHTML = results.map((r, i) => `${i + 1}. ${r.name} — ${r.score}`).join("<br>");
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
       }
+      return arr;
     }
 
-    startGame();
+    window.startGame = async () => {
+      await updateDoc(doc(db, "lobbies", lobbyId), { status: "started" });
+    };
+
+    window.enterGame = () => {
+      playerName = document.getElementById("name").value;
+      playerId = Math.random().toString(36).substr(2, 9);
+      showScreen("nameInput");
+    };
+
+    window.createLobby = createLobby;
+    window.joinLobby = joinLobby;
+
   </script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    #lobby-screen, #game-screen, #result-screen { display: none; }
+    button { margin: 5px; padding: 10px; }
+  </style>
+</head>
+<body onload="showScreen('nameInput')">
+  <div id="name-screen">
+    <input id="name" placeholder="Ваше имя" />
+    <button onclick="showScreen('lobby-screen')">Продолжить</button>
+  </div>
+  <div id="lobby-screen">
+    <select id="theme">
+      <option value="flags">Флаги</option>
+      <option value="minecraft">Minecraft</option>
+    </select>
+    <button onclick="createLobby()">Создать лобби</button>
+    <input id="join-code" placeholder="Код лобби" />
+    <button onclick="joinLobby()">Присоединиться</button>
+    <div id="players"></div>
+    <button onclick="startGame()">Начать игру</button>
+  </div>
+  <div id="game-screen">
+    <div id="question"></div>
+    <div id="options"></div>
+  </div>
+  <div id="result-screen">
+    <h3>Результаты:</h3>
+    <div id="results"></div>
+  </div>
 </body>
 </html>
