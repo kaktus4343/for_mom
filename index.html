@@ -1,19 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Онлайн Квиз</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, addDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      getDoc,
+      updateDoc,
+      onSnapshot,
+      addDoc,
+      query,
+      where,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyADcCmBpiQNmhDrU2WCYCrB3CAE2DIqv6g",
       authDomain: "tic-tac-toe-online-2b731.firebaseapp.com",
       databaseURL: "https://tic-tac-toe-online-2b731-default-rtdb.asia-southeast1.firebasedatabase.app",
       projectId: "tic-tac-toe-online-2b731",
-      storageBucket: "tic-tac-toe-online-2b731.firebasestorage.app",
+      storageBucket: "tic-tac-toe-online-2b731.appspot.com",
       messagingSenderId: "228936139438",
       appId: "1:228936139438:web:d065d36ffbb4c2d6e9e33f"
     };
@@ -67,11 +79,21 @@
       const lobbyRef = doc(db, "lobbies", lobbyId);
       const lobbySnap = await getDoc(lobbyRef);
       if (!lobbySnap.exists()) return alert("Лобби не найдено");
+
+      const data = lobbySnap.data();
+
       await setDoc(doc(db, `lobbies/${lobbyId}/players`, playerId), {
         name: playerName,
         score: 0,
         answers: []
       });
+
+      const qSnap = await getDocs(collection(db, "questions"));
+      questions = data.questionIds.map(id => {
+        const found = qSnap.docs.find(q => q.id === id);
+        return found ? { id: found.id, ...found.data() } : null;
+      }).filter(Boolean);
+
       listenLobby();
       showScreen("lobbyScreen");
     }
@@ -81,13 +103,12 @@
       onSnapshot(lobbyRef, async (snap) => {
         const data = snap.data();
         if (data.status === "started") {
-          const qSnap = await getDocs(collection(db, "questions"));
-          questions = data.questionIds.map(id => qSnap.docs.find(q => q.id === id).data());
           showQuestion();
         } else if (data.status === "finished") {
           showResults();
         }
       });
+
       const playersRef = collection(db, `lobbies/${lobbyId}/players`);
       onSnapshot(playersRef, (snap) => {
         const container = document.getElementById("players");
@@ -124,8 +145,11 @@
         score: player.score + (correct ? 1 : 0)
       });
       currentQuestionIndex++;
-      if (currentQuestionIndex < 10) showQuestion();
-      else if (isHost) await updateDoc(doc(db, "lobbies", lobbyId), { status: "finished" });
+      if (currentQuestionIndex < questions.length) {
+        showQuestion();
+      } else if (isHost) {
+        await updateDoc(doc(db, "lobbies", lobbyId), { status: "finished" });
+      }
     }
 
     async function showResults() {
@@ -154,26 +178,37 @@
     };
 
     window.enterGame = () => {
-      playerName = document.getElementById("name").value;
+      playerName = document.getElementById("name").value.trim();
+      if (!playerName) return alert("Введите имя!");
       playerId = Math.random().toString(36).substr(2, 9);
-      showScreen("nameInput");
+      showScreen("lobbyScreen");
     };
 
     window.createLobby = createLobby;
     window.joinLobby = joinLobby;
-
   </script>
+
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    #lobby-screen, #game-screen, #result-screen { display: none; }
-    button { margin: 5px; padding: 10px; }
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    #lobby-screen, #game-screen, #result-screen {
+      display: none;
+    }
+    button {
+      margin: 5px;
+      padding: 10px;
+    }
   </style>
 </head>
-<body onload="showScreen('nameInput')">
+
+<body>
   <div id="name-screen">
     <input id="name" placeholder="Ваше имя" />
-    <button onclick="showScreen('lobby-screen')">Продолжить</button>
+    <button onclick="enterGame()">Продолжить</button>
   </div>
+
   <div id="lobby-screen">
     <select id="theme">
       <option value="flags">Флаги</option>
@@ -185,10 +220,12 @@
     <div id="players"></div>
     <button onclick="startGame()">Начать игру</button>
   </div>
+
   <div id="game-screen">
     <div id="question"></div>
     <div id="options"></div>
   </div>
+
   <div id="result-screen">
     <h3>Результаты:</h3>
     <div id="results"></div>
