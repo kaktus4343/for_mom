@@ -718,3 +718,120 @@
                 showError('Ошибка отображения результатов');
             }
         }
+
+        // Вспомогательные функции
+        function generatePlayerId() {
+            return Math.random().toString(36).substring(2, 15);
+        }
+
+        function getRandomQuestions(theme, count) {
+            const themeQuestions = questionsData[theme] || [];
+            const shuffled = [...themeQuestions].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        async function initializeQuestions() {
+            // Проверяем, есть ли уже вопросы в Firestore
+            try {
+                const flagsSnapshot = await db.collection('questions').where('theme', '==', 'flags').limit(1).get();
+                const minecraftSnapshot = await db.collection('questions').where('theme', '==', 'minecraft').limit(1).get();
+                
+                if (flagsSnapshot.empty) {
+                    // Добавляем вопросы по флагам
+                    const batch = db.batch();
+                    questionsData.flags.forEach((question, index) => {
+                        const docRef = db.collection('questions').doc(`flags_${index}`);
+                        batch.set(docRef, {
+                            theme: 'flags',
+                            question: question.question,
+                            flag: question.flag,
+                            options: question.options,
+                            answerIndex: question.answerIndex
+                        });
+                    });
+                    await batch.commit();
+                }
+
+                if (minecraftSnapshot.empty) {
+                    // Добавляем вопросы по Minecraft
+                    const batch = db.batch();
+                    questionsData.minecraft.forEach((question, index) => {
+                        const docRef = db.collection('questions').doc(`minecraft_${index}`);
+                        batch.set(docRef, {
+                            theme: 'minecraft',
+                            question: question.question,
+                            options: question.options,
+                            answerIndex: question.answerIndex
+                        });
+                    });
+                    await batch.commit();
+                }
+            } catch (error) {
+                console.log('Использование локальных вопросов:', error);
+            }
+        }
+
+        async function leaveLobby() {
+            cleanup();
+            showMainScreen();
+        }
+
+        function cleanup() {
+            if (lobbyListener) {
+                lobbyListener();
+                lobbyListener = null;
+            }
+            if (playersListener) {
+                playersListener();
+                playersListener = null;
+            }
+            
+            currentPlayerId = null;
+            currentLobbyId = null;
+            isHost = false;
+            currentQuestionIndex = 0;
+            questions = [];
+            selectedAnswer = null;
+            playerAnswers = [];
+            
+            hideError();
+        }
+
+        function backToMain() {
+            cleanup();
+            showMainScreen();
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                hideError();
+            }, 5000);
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Очистка полей ввода
+            document.getElementById('player-name').value = '';
+            document.getElementById('lobby-code-input').value = '';
+            
+            // Обработчик Enter для полей ввода
+            document.getElementById('player-name').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const createBtn = document.querySelector('#main-screen button');
+                    if (createBtn) createBtn.click();
+                }
+            });
+            
+            document.getElementById('lobby-code-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    joinLobby();
+                }
+            });
+        });
