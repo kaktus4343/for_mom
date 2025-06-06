@@ -3,313 +3,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Online Quiz Game</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.0/firebase-firestore-compat.min.js"></script>
+    <title>Онлайн Викторина</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
         }
-
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-        }
-
+        
         .screen {
             display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
         }
-
-        .screen.active {
+        
+        .active {
             display: block;
         }
-
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2em;
-        }
-
-        h2 {
-            color: #555;
-            margin-bottom: 20px;
-        }
-
-        input, select, button {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
-        }
-
+        
         button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #4CAF50;
             color: white;
             border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
             cursor: pointer;
-            font-weight: bold;
-            text-transform: uppercase;
+            font-size: 16px;
+            margin: 5px;
         }
-
+        
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            background-color: #45a049;
         }
-
+        
         button:disabled {
-            background: #ccc;
+            background-color: #cccccc;
             cursor: not-allowed;
-            transform: none;
         }
-
-        .lobby-code {
-            background: #f8f9fa;
-            border: 2px dashed #667eea;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 10px;
-            font-size: 24px;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .players-list {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: left;
-        }
-
-        .player-item {
+        
+        input, select {
             padding: 10px;
             margin: 5px 0;
-            background: white;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .players-list {
+            margin: 20px 0;
+        }
+        
+        .player {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        
+        .question {
+            font-size: 20px;
+            margin: 20px 0;
+        }
+        
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .option {
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .option:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .option.selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .results {
+            margin: 20px 0;
+        }
+        
+        .result-item {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f0f0f0;
             border-radius: 5px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
         }
-
-        .host-badge {
-            background: #ffd700;
-            color: #333;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
+        
+        .first {
+            background-color: gold;
+        }
+        
+        .second {
+            background-color: silver;
+        }
+        
+        .third {
+            background-color: #cd7f32; /* bronze */
+        }
+        
+        .lobby-code {
+            font-size: 24px;
             font-weight: bold;
-        }
-
-        .question-container {
-            text-align: left;
-        }
-
-        .question-number {
-            color: #667eea;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .question-text {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        .flag-emoji {
-            font-size: 60px;
-            margin: 20px 0;
-            display: block;
             text-align: center;
-        }
-
-        .option {
-            background: #f8f9fa;
-            border: 2px solid #ddd;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .option:hover {
-            background: #e9ecef;
-            border-color: #667eea;
-        }
-
-        .option.selected {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
-        .results-table {
-            width: 100%;
-            border-collapse: collapse;
             margin: 20px 0;
-        }
-
-        .results-table th,
-        .results-table td {
-            padding: 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .results-table th {
-            background: #667eea;
-            color: white;
-        }
-
-        .place-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-weight: bold;
-            color: white;
-        }
-
-        .place-1 { background: #ffd700; color: #333; }
-        .place-2 { background: #c0c0c0; color: #333; }
-        .place-3 { background: #cd7f32; color: white; }
-
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 20px 0;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error {
-            color: #e74c3c;
-            background: #fadbd8;
             padding: 10px;
+            background-color: #e0e0e0;
             border-radius: 5px;
-            margin: 10px 0;
+        }
+        
+        .share-btn {
+            background-color: #4285F4;
+        }
+        
+        .share-btn:hover {
+            background-color: #3367D6;
+        }
+        
+        .flag-emoji {
+            font-size: 50px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .progress {
+            margin: 20px 0;
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 5px;
+            width: 0%;
+            transition: width 0.3s;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Главный экран -->
-        <div id="main-screen" class="screen active">
-            <h1>🎯 Online Quiz</h1>
-            <input type="text" id="player-name" placeholder="Введите ваше имя" maxlength="20">
-            <button onclick="showCreateLobby()">Создать лобби</button>
-            <button onclick="showJoinLobby()">Присоединиться к лобби</button>
+    <h1>Онлайн Викторина</h1>
+    
+    <!-- Экран входа -->
+    <div id="entry-screen" class="screen active">
+        <h2>Добро пожаловать!</h2>
+        <div>
+            <label for="player-name">Ваше имя:</label>
+            <input type="text" id="player-name" placeholder="Введите ваше имя" required>
         </div>
-
-        <!-- Создание лобби -->
-        <div id="create-lobby-screen" class="screen">
-            <h2>Создать лобби</h2>
-            <select id="theme-select">
-                <option value="flags">🏳️ Флаги стран</option>
-                <option value="minecraft">⛏️ Minecraft</option>
+        
+        <div>
+            <label for="theme">Тема викторины:</label>
+            <select id="theme">
+                <option value="flags">Флаги стран</option>
+                <option value="minecraft">Minecraft</option>
             </select>
-            <button onclick="createLobby()">Создать</button>
-            <button onclick="showMainScreen()">Назад</button>
         </div>
-
-        <!-- Присоединение к лобби -->
-        <div id="join-lobby-screen" class="screen">
-            <h2>Присоединиться к лобби</h2>
-            <input type="text" id="lobby-code-input" placeholder="Введите код лобби" maxlength="6">
-            <button onclick="joinLobby()">Присоединиться</button>
-            <button onclick="showMainScreen()">Назад</button>
-        </div>
-
-        <!-- Лобби -->
-        <div id="lobby-screen" class="screen">
-            <h2>Лобби</h2>
-            <div class="lobby-code" id="lobby-code-display"></div>
-            <div class="players-list">
-                <h3>Игроки:</h3>
-                <div id="players-container"></div>
-            </div>
-            <button id="start-game-btn" onclick="startGame()" style="display: none;">Начать игру</button>
-            <button onclick="leaveLobby()">Покинуть лобби</button>
-        </div>
-
-        <!-- Игра -->
-        <div id="game-screen" class="screen">
-            <div class="question-container">
-                <div class="question-number" id="question-number"></div>
-                <div class="question-text" id="question-text"></div>
-                <div id="flag-display"></div>
-                <div id="options-container"></div>
-                <button id="next-question-btn" onclick="nextQuestion()" style="display: none;">Следующий вопрос</button>
+        
+        <div style="margin-top: 20px;">
+            <button id="create-lobby-btn">Создать лобби</button>
+            <p>или</p>
+            <div>
+                <input type="text" id="lobby-code" placeholder="Введите код лобби">
+                <button id="join-lobby-btn">Присоединиться</button>
             </div>
         </div>
-
-        <!-- Результаты -->
-        <div id="results-screen" class="screen">
-            <h2>🏆 Результаты</h2>
-            <table class="results-table">
-                <thead>
-                    <tr>
-                        <th>Место</th>
-                        <th>Игрок</th>
-                        <th>Очки</th>
-                    </tr>
-                </thead>
-                <tbody id="results-table-body"></tbody>
-            </table>
-            <button onclick="backToMain()">Новая игра</button>
-        </div>
-
-        <!-- Загрузка -->
-        <div id="loading-screen" class="screen">
-            <div class="loading">
-                <div class="spinner"></div>
-            </div>
-            <p>Загрузка...</p>
-        </div>
-
-        <!-- Ошибки -->
-        <div id="error-message" class="error" style="display: none;"></div>
     </div>
-
+    
+    <!-- Экран ожидания в лобби -->
+    <div id="lobby-screen" class="screen">
+        <h2>Лобби</h2>
+        <div id="lobby-info">
+            <p>Тема: <span id="lobby-theme"></span></p>
+            <div class="lobby-code">Код лобби: <span id="lobby-code-display"></span></div>
+            <button id="share-btn" class="share-btn">Поделиться</button>
+        </div>
+        
+        <div class="players-list">
+            <h3>Игроки:</h3>
+            <div id="players-container"></div>
+        </div>
+        
+        <div id="host-controls" style="display: none;">
+            <button id="start-game-btn">Начать игру</button>
+        </div>
+    </div>
+    
+    <!-- Экран игры -->
+    <div id="game-screen" class="screen">
+        <div class="progress">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="question" id="question-text"></div>
+        <div class="flag-emoji" id="flag-emoji" style="display: none;"></div>
+        <div class="options" id="options-container"></div>
+    </div>
+    
+    <!-- Экран результатов -->
+    <div id="results-screen" class="screen">
+        <h2>Результаты</h2>
+        <div class="results" id="results-container"></div>
+        <button id="return-to-lobby-btn">Вернуться в лобби</button>
+    </div>
+    
     <script>
-        // Firebase конфигурация
+        // Инициализация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAMBSvRY63cyjvQdbovfsSUws0r65iJ9vo",
             authDomain: "onlinequiz-bb97e.firebaseapp.com",
@@ -323,515 +244,426 @@
         // Инициализация Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const rtdb = firebase.database();
 
         // Глобальные переменные
-        let currentPlayerId = null;
-        let currentLobbyId = null;
+        let playerName = '';
+        let playerId = '';
+        let lobbyId = '';
         let isHost = false;
+        let currentTheme = '';
         let currentQuestionIndex = 0;
+        let selectedAnswerIndex = null;
+        let playerScore = 0;
         let questions = [];
-        let selectedAnswer = null;
         let playerAnswers = [];
-        let lobbyListener = null;
-        let playersListener = null;
 
-        // Вопросы для викторины
-        const questionsData = {
-            flags: [
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇺🇸", options: ["США", "Канада", "Австралия", "Новая Зеландия"], answerIndex: 0 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇯🇵", options: ["Китай", "Южная Корея", "Япония", "Тайланд"], answerIndex: 2 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇫🇷", options: ["Италия", "Франция", "Бельгия", "Нидерланды"], answerIndex: 1 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇬🇧", options: ["Ирландия", "Шотландия", "Великобритания", "Уэльс"], answerIndex: 2 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇩🇪", options: ["Австрия", "Швейцария", "Бельгия", "Германия"], answerIndex: 3 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇧🇷", options: ["Аргентина", "Бразилия", "Колумбия", "Перу"], answerIndex: 1 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇨🇦", options: ["Канада", "США", "Австралия", "Норвегия"], answerIndex: 0 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇦🇺", options: ["Новая Зеландия", "Великобритания", "Австралия", "Фиджи"], answerIndex: 2 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇮🇳", options: ["Пакистан", "Бангладеш", "Шри-Ланка", "Индия"], answerIndex: 3 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇨🇳", options: ["Китай", "Япония", "Южная Корея", "Северная Корея"], answerIndex: 0 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇷🇺", options: ["Беларусь", "Украина", "Россия", "Польша"], answerIndex: 2 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇮🇹", options: ["Франция", "Испания", "Португалия", "Италия"], answerIndex: 3 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇪🇸", options: ["Португалия", "Испания", "Мексика", "Аргентина"], answerIndex: 1 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇳🇱", options: ["Бельгия", "Люксембург", "Нидерланды", "Дания"], answerIndex: 2 },
-                { question: "Какой стране принадлежит этот флаг?", flag: "🇸🇪", options: ["Норвегия", "Дания", "Финляндия", "Швеция"], answerIndex: 3 }
-            ],
-            minecraft: [
-                { question: "Из какого материала можно сделать самые прочные инструменты?", options: ["Алмаз", "Железо", "Золото", "Незерит"], answerIndex: 3 },
-                { question: "Какой моб появляется только в Незере?", options: ["Зомби", "Скелет", "Гаст", "Паук"], answerIndex: 2 },
-                { question: "Сколько блоков составляет максимальная высота мира в Minecraft?", options: ["256", "320", "384", "512"], answerIndex: 2 },
-                { question: "Какой предмет нужен для активации портала в Край?", options: ["Жемчуг Края", "Око Края", "Стержень ифрита", "Алмаз"], answerIndex: 1 },
-                { question: "Какой моб является боссом Края?", options: ["Дракон Края", "Иссушитель", "Старший страж", "Поборник"], answerIndex: 0 },
-                { question: "Из чего можно приготовить хлеб?", options: ["Картофель", "Морковь", "Пшеница", "Свекла"], answerIndex: 2 },
-                { question: "Какой блок нужен для создания портала в Незер?", options: ["Обсидиан", "Бедрок", "Незерит", "Лава"], answerIndex: 0 },
-                { question: "Сколько сердец здоровья у игрока по умолчанию?", options: ["5", "10", "15", "20"], answerIndex: 1 },
-                { question: "Какой предмет используется для починки предметов?", options: ["Алмаз", "Железо", "Наковальня", "Верстак"], answerIndex: 2 },
-                { question: "Какой моб взрывается при приближении к игроку?", options: ["Зомби", "Скелет", "Крипер", "Паук"], answerIndex: 2 },
-                { question: "Что происходит, если не спать несколько ночей подряд?", options: ["Ничего", "Появляются фантомы", "Уменьшается здоровье", "Увеличивается голод"], answerIndex: 1 },
-                { question: "Какой инструмент нужен для добычи камня?", options: ["Топор", "Лопата", "Кирка", "Мотыга"], answerIndex: 2 },
-                { question: "Сколько блоков в стороне у одного чанка?", options: ["8", "16", "32", "64"], answerIndex: 1 },
-                { question: "Какой материал можно найти только в Незере?", options: ["Алмаз", "Золото", "Кварц Незера", "Железо"], answerIndex: 2 },
-                { question: "Какой уровень освещения предотвращает спавн мобов?", options: ["7", "8", "9", "10"], answerIndex: 1 }
-            ]
+        // Элементы интерфейса
+        const screens = {
+            entry: document.getElementById('entry-screen'),
+            lobby: document.getElementById('lobby-screen'),
+            game: document.getElementById('game-screen'),
+            results: document.getElementById('results-screen')
         };
 
-        // Функции управления экранами
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
-            });
-            document.getElementById(screenId).classList.add('active');
-        }
-
-        function showMainScreen() {
-            cleanup();
-            showScreen('main-screen');
-        }
-
-        function showCreateLobby() {
-            const playerName = document.getElementById('player-name').value.trim();
-            if (!playerName) {
-                showError('Введите ваше имя');
-                return;
+        // Функция для переключения экранов
+        function showScreen(screenName) {
+            for (const screen in screens) {
+                screens[screen].classList.remove('active');
             }
-            showScreen('create-lobby-screen');
+            screens[screenName].classList.add('active');
         }
 
-        function showJoinLobby() {
-            const playerName = document.getElementById('player-name').value.trim();
-            if (!playerName) {
-                showError('Введите ваше имя');
-                return;
+        // Генерация случайного ID
+        function generateId(length = 6) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
             }
-            showScreen('join-lobby-screen');
+            return result;
         }
 
-        // Функции для работы с лобби
-        async function createLobby() {
-            const playerName = document.getElementById('player-name').value.trim();
-            const theme = document.getElementById('theme-select').value;
+        // Создание лобби
+        document.getElementById('create-lobby-btn').addEventListener('click', async () => {
+            playerName = document.getElementById('player-name').value.trim();
+            currentTheme = document.getElementById('theme').value;
             
             if (!playerName) {
-                showError('Введите ваше имя');
+                alert('Пожалуйста, введите ваше имя');
                 return;
             }
-
-            showScreen('loading-screen');
-
+            
+            playerId = generateId(10);
+            lobbyId = generateId(6);
+            isHost = true;
+            
             try {
-                // Инициализация вопросов в Firestore
-                await initializeQuestions();
-
-                // Генерация кода лобби
-                const lobbyCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-                currentLobbyId = lobbyCode;
-                currentPlayerId = generatePlayerId();
-                isHost = true;
-
-                // Получение случайных вопросов
-                const randomQuestions = getRandomQuestions(theme, 10);
-
-                // Создание лобби
-                await db.collection('lobbies').doc(lobbyCode).set({
-                    hostId: currentPlayerId,
+                // Создаем лобби в Firestore
+                await db.collection('lobbies').doc(lobbyId).set({
+                    hostId: playerId,
                     status: 'waiting',
-                    theme: theme,
+                    theme: currentTheme,
                     currentQuestion: 0,
-                    questionIds: randomQuestions.map((_, index) => index.toString()),
+                    questionIds: [],
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-
-                // Добавление хоста как игрока
-                await db.collection('lobbies').doc(lobbyCode).collection('players').doc(currentPlayerId).set({
+                
+                // Добавляем игрока в Realtime Database
+                await rtdb.ref(`lobbies/${lobbyId}/players/${playerId}`).set({
                     name: playerName,
                     score: 0,
-                    answers: [],
-                    joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    answers: []
                 });
-
-                // Сохранение вопросов для этой игры
-                questions = randomQuestions;
-
+                
+                // Показываем экран лобби
+                showLobbyScreen();
+                
+                // Слушаем изменения в лобби
                 setupLobbyListeners();
-                document.getElementById('lobby-code-display').textContent = `Код лобби: ${lobbyCode}`;
-                document.getElementById('start-game-btn').style.display = 'block';
-                showScreen('lobby-screen');
             } catch (error) {
-                console.error('Ошибка создания лобби:', error);
-                showError('Ошибка создания лобби');
-                showMainScreen();
+                console.error('Ошибка при создании лобби:', error);
+                alert('Не удалось создать лобби. Пожалуйста, попробуйте еще раз.');
             }
-        }
+        });
 
-        async function joinLobby() {
-            const playerName = document.getElementById('player-name').value.trim();
-            const lobbyCode = document.getElementById('lobby-code-input').value.trim().toUpperCase();
+        // Присоединение к лобби
+        document.getElementById('join-lobby-btn').addEventListener('click', async () => {
+            playerName = document.getElementById('player-name').value.trim();
+            lobbyId = document.getElementById('lobby-code').value.trim().toUpperCase();
             
-            if (!playerName || !lobbyCode) {
-                showError('Заполните все поля');
+            if (!playerName) {
+                alert('Пожалуйста, введите ваше имя');
                 return;
             }
-
-            showScreen('loading-screen');
-
+            
+            if (!lobbyId || lobbyId.length !== 6) {
+                alert('Пожалуйста, введите корректный код лобби (6 символов)');
+                return;
+            }
+            
+            playerId = generateId(10);
+            isHost = false;
+            
             try {
-                // Проверка существования лобби
-                const lobbyDoc = await db.collection('lobbies').doc(lobbyCode).get();
+                // Проверяем существование лобби
+                const lobbyDoc = await db.collection('lobbies').doc(lobbyId).get();
                 
                 if (!lobbyDoc.exists) {
-                    showError('Лобби не найдено');
-                    showScreen('join-lobby-screen');
+                    alert('Лобби с таким кодом не найдено');
                     return;
                 }
-
+            
                 const lobbyData = lobbyDoc.data();
                 
                 if (lobbyData.status !== 'waiting') {
-                    showError('Игра уже началась');
-                    showScreen('join-lobby-screen');
+                    alert('Игра уже началась или закончилась');
                     return;
                 }
-
-                currentLobbyId = lobbyCode;
-                currentPlayerId = generatePlayerId();
-                isHost = false;
-
-                // Добавление игрока
-                await db.collection('lobbies').doc(lobbyCode).collection('players').doc(currentPlayerId).set({
+                
+                currentTheme = lobbyData.theme;
+                
+                // Добавляем игрока в Realtime Database
+                await rtdb.ref(`lobbies/${lobbyId}/players/${playerId}`).set({
                     name: playerName,
                     score: 0,
-                    answers: [],
-                    joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    answers: []
                 });
-
+                
+                // Показываем экран лобби
+                showLobbyScreen();
+                
+                // Слушаем изменения в лобби
                 setupLobbyListeners();
-                document.getElementById('lobby-code-display').textContent = `Код лобби: ${lobbyCode}`;
-                document.getElementById('start-game-btn').style.display = 'none';
-                showScreen('lobby-screen');
             } catch (error) {
-                console.error('Ошибка присоединения к лобби:', error);
-                showError('Ошибка присоединения к лобби');
-                showScreen('join-lobby-screen');
+                console.error('Ошибка при присоединении к лобби:', error);
+                alert('Не удалось присоединиться к лобби. Пожалуйста, попробуйте еще раз.');
             }
+        });
+
+        // Показать экран лобби
+        function showLobbyScreen() {
+            document.getElementById('lobby-theme').textContent = 
+                currentTheme === 'flags' ? 'Флаги стран' : 'Minecraft';
+            document.getElementById('lobby-code-display').textContent = lobbyId;
+            
+            if (isHost) {
+                document.getElementById('host-controls').style.display = 'block';
+            } else {
+                document.getElementById('host-controls').style.display = 'none';
+            }
+            
+            showScreen('lobby');
         }
 
+        // Настройка слушателей для лобби
         function setupLobbyListeners() {
-            // Слушатель лобби
-            lobbyListener = db.collection('lobbies').doc(currentLobbyId).onSnapshot((doc) => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    if (data.status === 'started') {
-                        startGameForPlayer();
-                    } else if (data.status === 'finished') {
-                        showResults();
+            // Слушаем изменения в списке игроков
+            rtdb.ref(`lobbies/${lobbyId}/players`).on('value', (snapshot) => {
+                const players = snapshot.val() || {};
+                updatePlayersList(players);
+            });
+            
+            // Слушаем изменения состояния лобби
+            db.collection('lobbies').doc(lobbyId).onSnapshot((doc) => {
+                const lobbyData = doc.data();
+                
+                if (lobbyData.status === 'started') {
+                    // Игра началась
+                    if (lobbyData.questionIds.length > 0) {
+                        questions = lobbyData.questionIds;
+                        loadQuestionsAndStartGame();
                     }
+                } else if (lobbyData.status === 'finished') {
+                    // Игра закончилась
+                    showResults();
                 }
             });
-
-            // Слушатель игроков
-            playersListener = db.collection('lobbies').doc(currentLobbyId).collection('players')
-                .onSnapshot((snapshot) => {
-                    updatePlayersList(snapshot);
-                });
+            
+            // Кнопка "Поделиться"
+            document.getElementById('share-btn').addEventListener('click', () => {
+                const url = `${window.location.origin}${window.location.pathname}?lobby=${lobbyId}`;
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Присоединяйся к моей викторине!',
+                        text: `Присоединяйся к моей викторине! Код лобби: ${lobbyId}`,
+                        url: url
+                    }).catch(err => {
+                        console.log('Ошибка при попытке поделиться:', err);
+                        copyToClipboard(lobbyId);
+                    });
+                } else {
+                    copyToClipboard(lobbyId);
+                }
+            });
+            
+            // Кнопка "Начать игру" (только для хоста)
+            document.getElementById('start-game-btn').addEventListener('click', async () => {
+                try {
+                    // Получаем 10 случайных вопросов по выбранной теме
+                    const questionsQuery = await db.collection('questions')
+                        .where('theme', '==', currentTheme)
+                        .limit(10)
+                        .get();
+                    
+                    const questionIds = questionsQuery.docs.map(doc => doc.id);
+                    
+                    // Обновляем лобби с ID вопросов и статусом "started"
+                    await db.collection('lobbies').doc(lobbyId).update({
+                        status: 'started',
+                        questionIds: questionIds,
+                        currentQuestion: 0
+                    });
+                } catch (error) {
+                    console.error('Ошибка при начале игры:', error);
+                    alert('Не удалось начать игру. Пожалуйста, попробуйте еще раз.');
+                }
+            });
+            
+            // Кнопка "Вернуться в лобби" на экране результатов
+            document.getElementById('return-to-lobby-btn').addEventListener('click', () => {
+                showLobbyScreen();
+            });
         }
 
-        function updatePlayersList(snapshot) {
+        // Обновление списка игроков
+        function updatePlayersList(players) {
             const playersContainer = document.getElementById('players-container');
             playersContainer.innerHTML = '';
-
-            snapshot.forEach((doc) => {
-                const player = doc.data();
+            
+            Object.entries(players).forEach(([id, player]) => {
                 const playerElement = document.createElement('div');
-                playerElement.className = 'player-item';
+                playerElement.className = 'player';
+                playerElement.textContent = player.name;
                 
-                const isPlayerHost = doc.id === (isHost ? currentPlayerId : null);
-                
-                playerElement.innerHTML = `
-                    <span>${player.name}</span>
-                    ${isPlayerHost ? '<span class="host-badge">HOST</span>' : ''}
-                `;
+                if (id === playerId) {
+                    playerElement.textContent += ' (Вы)';
+                    playerElement.style.fontWeight = 'bold';
+                }
                 
                 playersContainer.appendChild(playerElement);
             });
         }
 
-        async function startGame() {
-            if (!isHost) return;
+        // Копирование в буфер обмена
+        function copyToClipboard(text) {
+            const input = document.createElement('input');
+            input.value = text;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            alert(`Код лобби "${text}" скопирован в буфер обмена!`);
+        }
 
+        // Загрузка вопросов и начало игры
+        async function loadQuestionsAndStartGame() {
             try {
-                await db.collection('lobbies').doc(currentLobbyId).update({
-                    status: 'started',
-                    currentQuestion: 0
-                });
+                // Получаем вопросы из Firestore
+                const questionsPromises = questions.map(questionId => 
+                    db.collection('questions').doc(questionId).get()
+                );
+                
+                const questionsSnapshots = await Promise.all(questionsPromises);
+                questions = questionsSnapshots.map(snap => ({
+                    id: snap.id,
+                    ...snap.data()
+                }));
+                
+                // Начинаем игру
+                showScreen('game');
+                showQuestion(0);
             } catch (error) {
-                console.error('Ошибка начала игры:', error);
-                showError('Ошибка начала игры');
+                console.error('Ошибка при загрузке вопросов:', error);
+                alert('Не удалось загрузить вопросы. Пожалуйста, попробуйте еще раз.');
             }
         }
 
-        async function startGameForPlayer() {
-            currentQuestionIndex = 0;
-            playerAnswers = [];
-            selectedAnswer = null;
-
-            // Получение темы и загрузка вопросов
-            const lobbyDoc = await db.collection('lobbies').doc(currentLobbyId).get();
-            const lobbyData = lobbyDoc.data();
-            const theme = lobbyData.theme;
-            
-            questions = getRandomQuestions(theme, 10);
-            
-            showScreen('game-screen');
-            displayQuestion();
-        }
-
-        function displayQuestion() {
-            if (currentQuestionIndex >= questions.length) {
+        // Показать вопрос
+        function showQuestion(index) {
+            if (index >= questions.length) {
+                // Все вопросы пройдены
                 finishGame();
                 return;
             }
-
-            const question = questions[currentQuestionIndex];
             
-            document.getElementById('question-number').textContent = 
-                `Вопрос ${currentQuestionIndex + 1} из ${questions.length}`;
+            currentQuestionIndex = index;
+            const question = questions[index];
             
+            // Обновляем прогресс
+            document.getElementById('progress-bar').style.width = `${(index / questions.length) * 100}%`;
+            
+            // Показываем вопрос
             document.getElementById('question-text').textContent = question.question;
             
-            // Отображение флага для темы флагов
-            const flagDisplay = document.getElementById('flag-display');
-            if (question.flag) {
-                flagDisplay.innerHTML = `<div class="flag-emoji">${question.flag}</div>`;
+            // Если тема "флаги", показываем эмодзи флага
+            const flagEmoji = document.getElementById('flag-emoji');
+            if (currentTheme === 'flags') {
+                flagEmoji.textContent = question.question; // В этом случае question содержит эмодзи
+                flagEmoji.style.display = 'block';
             } else {
-                flagDisplay.innerHTML = '';
+                flagEmoji.style.display = 'none';
             }
-
-            // Отображение вариантов ответов
+            
+            // Показываем варианты ответов
             const optionsContainer = document.getElementById('options-container');
             optionsContainer.innerHTML = '';
             
-            question.options.forEach((option, index) => {
+            question.options.forEach((option, i) => {
                 const optionElement = document.createElement('div');
                 optionElement.className = 'option';
                 optionElement.textContent = option;
-                optionElement.onclick = () => selectAnswer(index);
+                optionElement.dataset.index = i;
+                
+                optionElement.addEventListener('click', () => {
+                    // Убираем выделение у всех вариантов
+                    document.querySelectorAll('.option').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                    
+                    // Выделяем выбранный вариант
+                    optionElement.classList.add('selected');
+                    selectedAnswerIndex = i;
+                    
+                    // Сохраняем ответ
+                    saveAnswer(index, i);
+                });
+                
                 optionsContainer.appendChild(optionElement);
             });
-
-            selectedAnswer = null;
-            document.getElementById('next-question-btn').style.display = 'none';
         }
 
-        function selectAnswer(index) {
-            selectedAnswer = index;
+        // Сохранение ответа
+        async function saveAnswer(questionIndex, answerIndex) {
+            playerAnswers[questionIndex] = answerIndex;
             
-            // Обновление визуального выбора
-            document.querySelectorAll('.option').forEach((option, i) => {
-                option.classList.toggle('selected', i === index);
+            // Проверяем правильность ответа
+            const isCorrect = answerIndex === questions[questionIndex].answerIndex;
+            if (isCorrect) {
+                playerScore++;
+            }
+            
+            // Обновляем данные игрока в Realtime Database
+            await rtdb.ref(`lobbies/${lobbyId}/players/${playerId}`).update({
+                answers: playerAnswers,
+                score: playerScore
             });
             
-            document.getElementById('next-question-btn').style.display = 'block';
-        }
-
-        function nextQuestion() {
-            if (selectedAnswer === null) return;
-            
-            playerAnswers.push(selectedAnswer);
-            currentQuestionIndex++;
-            displayQuestion();
-        }
-
-        async function finishGame() {
-            // Подсчет очков
-            let score = 0;
-            for (let i = 0; i < playerAnswers.length; i++) {
-                if (playerAnswers[i] === questions[i].answerIndex) {
-                    score++;
-                }
-            }
-
-            try {
-                // Обновление результатов игрока
-                await db.collection('lobbies').doc(currentLobbyId).collection('players')
-                    .doc(currentPlayerId).update({
-                        score: score,
-                        answers: playerAnswers
-                    });
-
-                // Если хост, завершить игру для всех
-                if (isHost) {
-                    setTimeout(async () => {
-                        await db.collection('lobbies').doc(currentLobbyId).update({
+            // Если хост, переходим к следующему вопросу через 3 секунды
+            if (isHost) {
+                setTimeout(async () => {
+                    const nextIndex = questionIndex + 1;
+                    
+                    if (nextIndex < questions.length) {
+                        // Обновляем текущий вопрос в лобби
+                        await db.collection('lobbies').doc(lobbyId).update({
+                            currentQuestion: nextIndex
+                        });
+                        
+                        // Показываем следующий вопрос
+                        showQuestion(nextIndex);
+                    } else {
+                        // Завершаем игру
+                        await db.collection('lobbies').doc(lobbyId).update({
                             status: 'finished'
                         });
-                    }, 2000);
-                }
-
-                showResults();
-            } catch (error) {
-                console.error('Ошибка завершения игры:', error);
-                showError('Ошибка завершения игры');
+                    }
+                }, 3000);
             }
         }
 
+        // Завершение игры
+        function finishGame() {
+            showResults();
+        }
+
+        // Показать результаты
         async function showResults() {
-            try {
-                const playersSnapshot = await db.collection('lobbies').doc(currentLobbyId)
-                    .collection('players').get();
+            // Получаем всех игроков
+            const playersSnapshot = await rtdb.ref(`lobbies/${lobbyId}/players`).once('value');
+            const players = playersSnapshot.val() || {};
+            
+            // Преобразуем в массив и сортируем по очкам
+            const playersArray = Object.entries(players).map(([id, player]) => ({
+                id,
+                ...player
+            })).sort((a, b) => b.score - a.score);
+            
+            // Показываем результаты
+            const resultsContainer = document.getElementById('results-container');
+            resultsContainer.innerHTML = '';
+            
+            playersArray.forEach((player, index) => {
+                const resultElement = document.createElement('div');
+                resultElement.className = 'result-item';
                 
-                const players = [];
-                playersSnapshot.forEach((doc) => {
-                    const player = doc.data();
-                    players.push({
-                        name: player.name,
-                        score: player.score || 0
-                    });
-                });
-
-                // Сортировка по очкам
-                players.sort((a, b) => b.score - a.score);
-
-                // Отображение результатов
-                const resultsTableBody = document.getElementById('results-table-body');
-                resultsTableBody.innerHTML = '';
-
-                players.forEach((player, index) => {
-                    const row = document.createElement('tr');
-                    const place = index + 1;
-                    let placeBadge = '';
-                    
-                    if (place === 1) placeBadge = '<span class="place-badge place-1">🥇</span>';
-                    else if (place === 2) placeBadge = '<span class="place-badge place-2">🥈</span>';
-                    else if (place === 3) placeBadge = '<span class="place-badge place-3">🥉</span>';
-                    else placeBadge = `<span>${place}</span>`;
-
-                    row.innerHTML = `
-                        <td>${placeBadge}</td>
-                        <td>${player.name}</td>
-                        <td>${player.score}/10</td>
-                    `;
-                    
-                    resultsTableBody.appendChild(row);
-                });
-
-                showScreen('results-screen');
-            } catch (error) {
-                console.error('Ошибка отображения результатов:', error);
-                showError('Ошибка отображения результатов');
-            }
-        }
-
-        // Вспомогательные функции
-        function generatePlayerId() {
-            return Math.random().toString(36).substring(2, 15);
-        }
-
-        function getRandomQuestions(theme, count) {
-            const themeQuestions = questionsData[theme] || [];
-            const shuffled = [...themeQuestions].sort(() => 0.5 - Math.random());
-            return shuffled.slice(0, count);
-        }
-
-        async function initializeQuestions() {
-            // Проверяем, есть ли уже вопросы в Firestore
-            try {
-                const flagsSnapshot = await db.collection('questions').where('theme', '==', 'flags').limit(1).get();
-                const minecraftSnapshot = await db.collection('questions').where('theme', '==', 'minecraft').limit(1).get();
+                if (index === 0) resultElement.classList.add('first');
+                else if (index === 1) resultElement.classList.add('second');
+                else if (index === 2) resultElement.classList.add('third');
                 
-                if (flagsSnapshot.empty) {
-                    // Добавляем вопросы по флагам
-                    const batch = db.batch();
-                    questionsData.flags.forEach((question, index) => {
-                        const docRef = db.collection('questions').doc(`flags_${index}`);
-                        batch.set(docRef, {
-                            theme: 'flags',
-                            question: question.question,
-                            flag: question.flag,
-                            options: question.options,
-                            answerIndex: question.answerIndex
-                        });
-                    });
-                    await batch.commit();
-                }
-
-                if (minecraftSnapshot.empty) {
-                    // Добавляем вопросы по Minecraft
-                    const batch = db.batch();
-                    questionsData.minecraft.forEach((question, index) => {
-                        const docRef = db.collection('questions').doc(`minecraft_${index}`);
-                        batch.set(docRef, {
-                            theme: 'minecraft',
-                            question: question.question,
-                            options: question.options,
-                            answerIndex: question.answerIndex
-                        });
-                    });
-                    await batch.commit();
-                }
-            } catch (error) {
-                console.log('Использование локальных вопросов:', error);
-            }
-        }
-
-        async function leaveLobby() {
-            cleanup();
-            showMainScreen();
-        }
-
-        function cleanup() {
-            if (lobbyListener) {
-                lobbyListener();
-                lobbyListener = null;
-            }
-            if (playersListener) {
-                playersListener();
-                playersListener = null;
-            }
-            
-            currentPlayerId = null;
-            currentLobbyId = null;
-            isHost = false;
-            currentQuestionIndex = 0;
-            questions = [];
-            selectedAnswer = null;
-            playerAnswers = [];
-            
-            hideError();
-        }
-
-        function backToMain() {
-            cleanup();
-            showMainScreen();
-        }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => {
-                hideError();
-            }, 5000);
-        }
-
-        function hideError() {
-            document.getElementById('error-message').style.display = 'none';
-        }
-
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            // Очистка полей ввода
-            document.getElementById('player-name').value = '';
-            document.getElementById('lobby-code-input').value = '';
-            
-            // Обработчик Enter для полей ввода
-            document.getElementById('player-name').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    const createBtn = document.querySelector('#main-screen button');
-                    if (createBtn) createBtn.click();
-                }
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = player.id === playerId ? `${player.name} (Вы)` : player.name;
+                
+                const scoreSpan = document.createElement('span');
+                scoreSpan.textContent = `${player.score}/${questions.length}`;
+                
+                resultElement.appendChild(nameSpan);
+                resultElement.appendChild(scoreSpan);
+                resultsContainer.appendChild(resultElement);
             });
             
-            document.getElementById('lobby-code-input').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    joinLobby();
-                }
-            });
+            showScreen('results');
+        }
+
+        // Проверяем параметры URL для автоматического присоединения
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const lobbyParam = urlParams.get('lobby');
+            
+            if (lobbyParam) {
+                document.getElementById('lobby-code').value = lobbyParam;
+            }
         });
+    </script>
+</body>
+</html>
