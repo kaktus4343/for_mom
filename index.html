@@ -1,234 +1,864 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Онлайн Квиз</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      doc,
-      setDoc,
-      getDoc,
-      updateDoc,
-      onSnapshot,
-      addDoc,
-      query,
-      where,
-      getDocs
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyADcCmBpiQNmhDrU2WCYCrB3CAE2DIqv6g",
-      authDomain: "tic-tac-toe-online-2b731.firebaseapp.com",
-      databaseURL: "https://tic-tac-toe-online-2b731-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "tic-tac-toe-online-2b731",
-      storageBucket: "tic-tac-toe-online-2b731.appspot.com",
-      messagingSenderId: "228936139438",
-      appId: "1:228936139438:web:d065d36ffbb4c2d6e9e33f"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    let playerName = "";
-    let playerId = "";
-    let lobbyId = "";
-    let isHost = false;
-    let currentQuestionIndex = 0;
-    let questions = [];
-
-    const screens = {
-      nameInput: document.getElementById("name-screen"),
-      lobbyScreen: document.getElementById("lobby-screen"),
-      gameScreen: document.getElementById("game-screen"),
-      resultScreen: document.getElementById("result-screen")
-    };
-
-    function showScreen(screenId) {
-      Object.values(screens).forEach(s => s.style.display = "none");
-      screens[screenId].style.display = "block";
-    }
-
-    async function createLobby() {
-      lobbyId = Math.random().toString(36).substr(2, 6);
-      isHost = true;
-      const theme = document.getElementById("theme").value;
-      const qSnap = await getDocs(query(collection(db, "questions"), where("theme", "==", theme)));
-      questions = shuffle([...qSnap.docs]).slice(0, 10).map(d => ({ id: d.id, ...d.data() }));
-      await setDoc(doc(db, "lobbies", lobbyId), {
-        hostId: playerId,
-        status: "waiting",
-        theme,
-        currentQuestion: 0,
-        questionIds: questions.map(q => q.id)
-      });
-      await setDoc(doc(db, `lobbies/${lobbyId}/players`, playerId), {
-        name: playerName,
-        score: 0,
-        answers: []
-      });
-      listenLobby();
-      showScreen("lobbyScreen");
-    }
-
-    async function joinLobby() {
-      lobbyId = document.getElementById("join-code").value;
-      const lobbyRef = doc(db, "lobbies", lobbyId);
-      const lobbySnap = await getDoc(lobbyRef);
-      if (!lobbySnap.exists()) return alert("Лобби не найдено");
-
-      const data = lobbySnap.data();
-
-      await setDoc(doc(db, `lobbies/${lobbyId}/players`, playerId), {
-        name: playerName,
-        score: 0,
-        answers: []
-      });
-
-      const qSnap = await getDocs(collection(db, "questions"));
-      questions = data.questionIds.map(id => {
-        const found = qSnap.docs.find(q => q.id === id);
-        return found ? { id: found.id, ...found.data() } : null;
-      }).filter(Boolean);
-
-      listenLobby();
-      showScreen("lobbyScreen");
-    }
-
-    function listenLobby() {
-      const lobbyRef = doc(db, "lobbies", lobbyId);
-      onSnapshot(lobbyRef, async (snap) => {
-        const data = snap.data();
-        if (data.status === "started") {
-          showQuestion();
-        } else if (data.status === "finished") {
-          showResults();
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- Обновленная CSP для Firebase -->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.gstatic.com https://www.claudeusercontent.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net/pyodide/; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebaseio.com https://*.googleapis.com; object-src 'none';">
+    <title>Онлайн Квиз</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-      });
 
-      const playersRef = collection(db, `lobbies/${lobbyId}/players`);
-      onSnapshot(playersRef, (snap) => {
-        const container = document.getElementById("players");
-        container.innerHTML = "";
-        snap.forEach(doc => {
-          const div = document.createElement("div");
-          div.textContent = doc.data().name;
-          container.appendChild(div);
-        });
-      });
-    }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
 
-    function showQuestion() {
-      showScreen("gameScreen");
-      const q = questions[currentQuestionIndex];
-      document.getElementById("question").textContent = q.question;
-      const options = document.getElementById("options");
-      options.innerHTML = "";
-      q.options.forEach((opt, idx) => {
-        const btn = document.createElement("button");
-        btn.textContent = opt;
-        btn.onclick = () => submitAnswer(idx);
-        options.appendChild(btn);
-      });
-    }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
 
-    async function submitAnswer(index) {
-      const playerRef = doc(db, `lobbies/${lobbyId}/players`, playerId);
-      const playerSnap = await getDoc(playerRef);
-      const player = playerSnap.data();
-      const correct = questions[currentQuestionIndex].answerIndex === index;
-      await updateDoc(playerRef, {
-        answers: [...player.answers, index],
-        score: player.score + (correct ? 1 : 0)
-      });
-      currentQuestionIndex++;
-      if (currentQuestionIndex < questions.length) {
-        showQuestion();
-      } else if (isHost) {
-        await updateDoc(doc(db, "lobbies", lobbyId), { status: "finished" });
-      }
-    }
+        .screen {
+            display: none;
+        }
 
-    async function showResults() {
-      showScreen("resultScreen");
-      const snap = await getDocs(collection(db, `lobbies/${lobbyId}/players`));
-      const results = [];
-      snap.forEach(doc => {
-        const d = doc.data();
-        results.push({ name: d.name, score: d.score });
-      });
-      results.sort((a, b) => b.score - a.score);
-      const resBox = document.getElementById("results");
-      resBox.innerHTML = results.map((r, i) => `${i + 1}. ${r.name} — ${r.score}`).join("<br>");
-    }
+        .screen.active {
+            display: block;
+        }
 
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
-    window.startGame = async () => {
-      await updateDoc(doc(db, "lobbies", lobbyId), { status: "started" });
-    };
+        h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
 
-    window.enterGame = () => {
-      playerName = document.getElementById("name").value.trim();
-      if (!playerName) return alert("Введите имя!");
-      playerId = Math.random().toString(36).substr(2, 9);
-      showScreen("lobbyScreen");
-    };
+        input, select, button {
+            padding: 15px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
 
-    window.createLobby = createLobby;
-    window.joinLobby = joinLobby;
-  </script>
+        input, select {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid transparent;
+        }
 
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
-    #lobby-screen, #game-screen, #result-screen {
-      display: none;
-    }
-    button {
-      margin: 5px;
-      padding: 10px;
-    }
-  </style>
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input:focus, select:focus {
+            border-color: #4ecdc4;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 150px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .lobby-code {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.2em;
+            letter-spacing: 3px;
+        }
+
+        .players-list {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .player {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .question-container {
+            margin: 30px 0;
+        }
+
+        .question {
+            font-size: 1.3em;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .option {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #4ecdc4;
+        }
+
+        .option.selected {
+            background: #4ecdc4;
+            border-color: #4ecdc4;
+        }
+
+        .results {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+
+        .medal {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .progress {
+            background: rgba(255, 255, 255, 0.2);
+            height: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .flag-emoji {
+            font-size: 4em;
+            margin: 20px 0;
+        }
+
+        .error {
+            color: #ff6b6b;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 107, 107, 0.2);
+            border-radius: 5px;
+        }
+
+        .success {
+            color: #4ecdc4;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(78, 205, 196, 0.2);
+            border-radius: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 20px;
+            }
+            
+            .options {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
 </head>
-
 <body>
-  <div id="name-screen">
-    <input id="name" placeholder="Ваше имя" />
-    <button onclick="enterGame()">Продолжить</button>
-  </div>
+    <div class="container">
+        <!-- Главный экран -->
+        <div id="main-screen" class="screen active">
+            <h1>🎯 Онлайн Квиз</h1>
+            <input type="text" id="player-name" placeholder="Введите ваше имя" maxlength="20">
+            <div id="name-error" class="error" style="display: none;"></div>
+            <div>
+                <button id="create-lobby-btn">Создать лобби</button>
+                <button id="join-lobby-btn">Присоединиться</button>
+            </div>
+        </div>
 
-  <div id="lobby-screen">
-    <select id="theme">
-      <option value="flags">Флаги</option>
-      <option value="minecraft">Minecraft</option>
-    </select>
-    <button onclick="createLobby()">Создать лобби</button>
-    <input id="join-code" placeholder="Код лобби" />
-    <button onclick="joinLobby()">Присоединиться</button>
-    <div id="players"></div>
-    <button onclick="startGame()">Начать игру</button>
-  </div>
+        <!-- Создание лобби -->
+        <div id="create-lobby-screen" class="screen">
+            <h2>Создать лобби</h2>
+            <select id="theme-select">
+                <option value="flags">🏳️ Флаги стран</option>
+                <option value="minecraft">⛏️ Minecraft</option>
+            </select>
+            <div>
+                <button id="create-lobby-submit-btn">Создать</button>
+                <button id="back-to-main-btn">Назад</button>
+            </div>
+            <div id="create-error" class="error" style="display: none;"></div>
+        </div>
 
-  <div id="game-screen">
-    <div id="question"></div>
-    <div id="options"></div>
-  </div>
+        <!-- Присоединение к лобби -->
+        <div id="join-lobby-screen" class="screen">
+            <h2>Присоединиться к лобби</h2>
+            <input type="text" id="lobby-code-input" placeholder="Введите код лобби" maxlength="6">
+            <div>
+                <button id="join-lobby-submit-btn">Присоединиться</button>
+                <button id="back-to-main-from-join-btn">Назад</button>
+            </div>
+            <div id="join-error" class="error" style="display: none;"></div>
+        </div>
 
-  <div id="result-screen">
-    <h3>Результаты:</h3>
-    <div id="results"></div>
-  </div>
+        <!-- Лобби -->
+        <div id="lobby-screen" class="screen">
+            <h2>Лобби</h2>
+            <div class="lobby-code">
+                <div>Код лобби:</div>
+                <div id="current-lobby-code"></div>
+            </div>
+            <div class="success">
+                <div>Поделитесь кодом с друзьями!</div>
+            </div>
+            <div class="players-list">
+                <h3>Игроки:</h3>
+                <div id="players-container"></div>
+            </div>
+            <div id="host-controls" style="display: none;">
+                <button id="start-game-btn">Начать игру</button>
+            </div>
+            <button id="leave-lobby-btn">Покинуть лобби</button>
+            <div id="lobby-error" class="error" style="display: none;"></div>
+        </div>
+
+        <!-- Игра -->
+        <div id="game-screen" class="screen">
+            <div class="progress">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <div id="question-counter"></div>
+            <div class="question-container">
+                <div id="question-flag" class="flag-emoji"></div>
+                <div id="question-text" class="question"></div>
+                <div id="options-container" class="options"></div>
+            </div>
+            <button id="next-question-btn" style="display: none;">Следующий вопрос</button>
+            <button id="finish-game-btn" style="display: none;">Завершить игру</button>
+        </div>
+
+        <!-- Результаты -->
+        <div id="results-screen" class="screen">
+            <h2>🏆 Результаты</h2>
+            <div id="results-container" class="results"></div>
+            <button id="new-game-btn">Новая игра</button>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Конфигурация Firebase (обновлено с предоставленными данными)
+            const firebaseConfig = {
+                apiKey: "AIzaSyAMBSvRY63cyjvQdbovfsSUws0r65iJ9vo",
+                authDomain: "onlinequiz-bb97e.firebaseapp.com",
+                databaseURL: "https://onlinequiz-bb97e-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "onlinequiz-bb97e",
+                storageBucket: "onlinequiz-bb97e.firebasestorage.app",
+                messagingSenderId: "1058944256488",
+                appId: "1:1058944256488:web:504948b3c3311468dfbc5d"
+            };
+
+            /*
+            Правила Firestore для разрешения чтения и записи:
+            Чтобы применить эти правила, перейдите в консоль Firebase:
+            1. Откройте https://console.firebase.google.com/
+            2. Выберите проект "onlinequiz-bb97e"
+            3. Перейдите в "Firestore Database" -> "Rules"
+            4. Вставьте следующие правила и нажмите "Publish"
+
+            rules_version = '2';
+            service cloud.firestore {
+              match /databases/{database}/documents {
+                match /{document=**} {
+                  allow read, write: if true;
+                }
+              }
+            }
+            */
+
+            let app, db;
+
+            try {
+                if (!firebase.apps.length) {
+                    app = firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore(app);
+                    console.log('Firebase инициализирован успешно!');
+                } else {
+                    app = firebase.app();
+                    db = firebase.firestore(app);
+                    console.log('Firebase уже инициализирован, используем существующий экземпляр.');
+                }
+            } catch (error) {
+                console.error('Ошибка инициализации Firebase:', {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack
+                });
+                showError('name-error', `Ошибка инициализации Firebase: ${error.message} (код: ${error.code})`);
+                return;
+            }
+
+            // Глобальные переменные
+            window.gameState = {
+                playerId: generateId(),
+                playerName: '',
+                lobbyId: '',
+                isHost: false,
+                currentQuestion: 0,
+                answers: [],
+                questions: [],
+                lobbyUnsubscribe: null,
+                playersUnsubscribe: null
+            };
+
+            // Вопросы для викторины
+            const questionData = {
+                flags: [
+                    { question: "🇺🇸", options: ["США", "Канада", "Великобритания", "Австралия"], answer: 0 },
+                    { question: "🇫🇷", options: ["Италия", "Франция", "Испания", "Португалия"], answer: 1 },
+                    { question: "🇩🇪", options: ["Австрия", "Швейцария", "Германия", "Нидерланды"], answer: 2 },
+                    { question: "🇯🇵", options: ["Китай", "Корея", "Япония", "Таиланд"], answer: 2 },
+                    { question: "🇧🇷", options: ["Аргентина", "Бразилия", "Чили", "Перу"], answer: 1 },
+                    { question: "🇮🇹", options: ["Греция", "Испания", "Италия", "Франция"], answer: 2 },
+                    { question: "🇨🇦", options: ["Канада", "США", "Великобритания", "Австралия"], answer: 0 },
+                    { question: "🇦🇺", options: ["Новая Зеландия", "Канада", "Австралия", "Великобритания"], answer: 2 },
+                    { question: "🇨🇳", options: ["Япония", "Китай", "Корея", "Монголия"], answer: 1 },
+                    { question: "🇷🇺", options: ["Польша", "Украина", "Беларусь", "Россия"], answer: 3 },
+                    { question: "🇬🇧", options: ["Ирландия", "Шотландия", "Великобритания", "Уэльс"], answer: 2 },
+                    { question: "🇪🇸", options: ["Португалия", "Испания", "Италия", "Франция"], answer: 1 },
+                    { question: "🇰🇷", options: ["Китай", "Япония", "Корея", "Таиланд"], answer: 2 },
+                    { question: "🇮🇳", options: ["Пакистан", "Индия", "Бангладеш", "Шри-Ланка"], answer: 1 },
+                    { question: "🇲🇽", options: ["Мексика", "Колумбия", "Венесуэла", "Аргентина"], answer: 0 }
+                ],
+                minecraft: [
+                    { question: "Из чего делается кирка?", options: ["Дерево и камень", "Палки и материал", "Железо и алмазы", "Золото и камень"], answer: 1 },
+                    { question: "Что падает с криперов?", options: ["Порох", "Кости", "Гнилое мясо", "Угольная пыль"], answer: 0 },
+                    { question: "Сколько блоков в стаке?", options: ["32", "64", "128", "16"], answer: 1 },
+                    { question: "Что нужно для создания портала в Нижний мир?", options: ["Алмазы", "Обсидиан", "Камень", "Железо"], answer: 1 },
+                    { question: "Какой моб появляется только ночью?", options: ["Свинья", "Корова", "Зомби", "Овца"], answer: 2 },
+                    { question: "Что можно приготовить из пшеницы?", options: ["Хлеб", "Торт", "Печенье", "Пирог"], answer: 0 },
+                    { question: "Сколько сердец здоровья у игрока?", options: ["5", "10", "15", "20"], answer: 1 },
+                    { question: "Что нужно для зачарования предметов?", options: ["Алмазы", "Лазурит", "Золото", "Железо"], answer: 1 },
+                    { question: "Какой блок светится в темноте?", options: ["Камень", "Факел", "Дерево", "Земля"], answer: 1 },
+                    { question: "Что дропает эндермен?", options: ["Жемчуг Края", "Пыль ифрита", "Слеза гаста", "Паучий глаз"], answer: 0 },
+                    { question: "Сколько нужно досок для верстака?", options: ["2", "4", "6", "8"], answer: 1 },
+                    { question: "Какой инструмент нужен для добычи камня?", options: ["Топор", "Лопата", "Кирка", "Мотыга"], answer: 2 },
+                    { question: "Что можно приготовить из какао-бобов?", options: ["Шоколад", "Печенье", "Торт", "Хлеб"], answer: 1 },
+                    { question: "Какой моб дропает перья?", options: ["Курица", "Свинья", "Корова", "Овца"], answer: 0 },
+                    { question: "Сколько блоков высотой игрок?", options: ["1", "1.5", "2", "2.5"], answer: 2 }
+                ]
+            };
+
+            // Инициализация вопросов в Firestore
+            async function initializeQuestions() {
+                try {
+                    const flagsQuery = await db.collection('questions').where('theme', '==', 'flags').get();
+                    
+                    if (flagsQuery.empty) {
+                        for (const q of questionData.flags) {
+                            await db.collection('questions').add({
+                                theme: 'flags',
+                                question: q.question,
+                                options: q.options,
+                                answerIndex: q.answer
+                            });
+                        }
+                    }
+
+                    const minecraftQuery = await db.collection('questions').where('theme', '==', 'minecraft').get();
+                    
+                    if (minecraftQuery.empty) {
+                        for (const q of questionData.minecraft) {
+                            await db.collection('questions').add({
+                                theme: 'minecraft',
+                                question: q.question,
+                                options: q.options,
+                                answerIndex: q.answer
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка инициализации вопросов:', error);
+                }
+            }
+
+            initializeQuestions();
+
+            // Утилиты
+            function generateId() {
+                return Math.random().toString(36).substring(2, 8).toUpperCase();
+            }
+
+            function generateLobbyCode() {
+                return Math.random().toString(36).substring(2, 8).toUpperCase();
+            }
+
+            function showScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(screen => {
+                    screen.classList.remove('active');
+                });
+                document.getElementById(screenId).classList.add('active');
+            }
+
+            function showError(elementId, message) {
+                const errorElement = document.getElementById(elementId);
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                setTimeout(() => {
+                    errorElement.style.display = 'none';
+                }, 5000);
+            }
+
+            // Навигация между экранами
+            function showMainScreen() {
+                if (gameState.lobbyUnsubscribe) gameState.lobbyUnsubscribe();
+                if (gameState.playersUnsubscribe) gameState.playersUnsubscribe();
+                gameState = {
+                    playerId: generateId(),
+                    playerName: '',
+                    lobbyId: '',
+                    isHost: false,
+                    currentQuestion: 0,
+                    answers: [],
+                    questions: [],
+                    lobbyUnsubscribe: null,
+                    playersUnsubscribe: null
+                };
+                showScreen('main-screen');
+            }
+
+            function showCreateLobby() {
+                const playerName = document.getElementById('player-name').value.trim();
+                if (!playerName) {
+                    showError('name-error', 'Введите ваше имя');
+                    return;
+                }
+                gameState.playerName = playerName;
+                showScreen('create-lobby-screen');
+            }
+
+            function showJoinLobby() {
+                const playerName = document.getElementById('player-name').value.trim();
+                if (!playerName) {
+                    showError('name-error', 'Введите ваше имя');
+                    return;
+                }
+                gameState.playerName = playerName;
+                showScreen('join-lobby-screen');
+            }
+
+            // Создание лобби
+            async function createLobby() {
+                try {
+                    const theme = document.getElementById('theme-select').value;
+                    const lobbyCode = generateLobbyCode();
+                    
+                    const questionsQuery = db.collection('questions').where('theme', '==', theme);
+                    const questionsSnapshot = await questionsQuery.get();
+                    const allQuestions = questionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    const selectedQuestions = allQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
+                    
+                    await db.collection('lobbies').doc(lobbyCode).set({
+                        hostId: gameState.playerId,
+                        status: 'waiting',
+                        theme: theme,
+                        currentQuestion: 0,
+                        questions: selectedQuestions,
+                        createdAt: new Date()
+                    });
+
+                    await db.collection('lobbies').doc(lobbyCode).collection('players').doc(gameState.playerId).set({
+                        name: gameState.playerName,
+                        score: 0,
+                        answers: [],
+                        joinedAt: new Date()
+                    });
+
+                    gameState.lobbyId = lobbyCode;
+                    gameState.isHost = true;
+                    
+                    document.getElementById('current-lobby-code').textContent = lobbyCode;
+                    document.getElementById('host-controls').style.display = 'block';
+                    
+                    setupLobbyListeners();
+                    showScreen('lobby-screen');
+                } catch (error) {
+                    console.error('Ошибка создания лобби:', error);
+                    showError('create-error', 'Ошибка создания лобби');
+                }
+            }
+
+            // Присоединение к лобби
+            async function joinLobby() {
+                try {
+                    const lobbyCode = document.getElementById('lobby-code-input').value.trim().toUpperCase();
+                    if (!lobbyCode) {
+                        showError('join-error', 'Введите код лобби');
+                        return;
+                    }
+
+                    const lobbyDoc = await db.collection('lobbies').doc(lobbyCode).get();
+                    
+                    if (!lobbyDoc.exists) {
+                        showError('join-error', 'Лобби не найдено');
+                        return;
+                    }
+
+                    const lobbyData = lobbyDoc.data();
+                    if (lobbyData.status !== 'waiting') {
+                        showError('join-error', 'Игра уже началась');
+                        return;
+                    }
+
+                    await db.collection('lobbies').doc(lobbyCode).collection('players').doc(gameState.playerId).set({
+                        name: gameState.playerName,
+                        score: 0,
+                        answers: [],
+                        joinedAt: new Date()
+                    });
+
+                    gameState.lobbyId = lobbyCode;
+                    gameState.isHost = false;
+                    
+                    document.getElementById('current-lobby-code').textContent = lobbyCode;
+                    document.getElementById('host-controls').style.display = 'none';
+                    
+                    setupLobbyListeners();
+                    showScreen('lobby-screen');
+                } catch (error) {
+                    console.error('Ошибка присоединения к лобби:', error);
+                    showError('join-error', 'Ошибка присоединения к лобби');
+                }
+            }
+
+            // Настройка слушателей лобби
+            function setupLobbyListeners() {
+                gameState.lobbyUnsubscribe = db.collection('lobbies').doc(gameState.lobbyId).onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const lobbyData = doc.data();
+                        if (lobbyData.status === 'started') {
+                            gameState.questions = lobbyData.questions;
+                            startGameSession();
+                        }
+                    } else {
+                        showError('lobby-error', 'Лобби было удалено');
+                        setTimeout(() => showMainScreen(), 2000);
+                    }
+                });
+
+                gameState.playersUnsubscribe = db.collection('lobbies').doc(gameState.lobbyId).collection('players').onSnapshot((snapshot) => {
+                    updatePlayersList(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                });
+            }
+
+            // Обновление списка игроков
+            function updatePlayersList(players) {
+                const container = document.getElementById('players-container');
+                container.innerHTML = '';
+                
+                players.forEach(player => {
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'player';
+                    const isCurrentPlayer = player.id === gameState.playerId;
+                    const isHost = gameState.isHost && isCurrentPlayer;
+                    playerDiv.innerHTML = `
+                        <span>${player.name} ${isCurrentPlayer ? '(Вы)' : ''}</span>
+                        <span>${isHost ? '👑' : ''}</span>
+                    `;
+                    container.appendChild(playerDiv);
+                });
+
+                if (gameState.isHost) {
+                    const startBtn = document.getElementById('start-game-btn');
+                    startBtn.disabled = players.length < 2;
+                    startBtn.textContent = players.length < 2 ? 'Ожидание игроков...' : 'Начать игру';
+                }
+            }
+
+            // Покинуть лобби
+            async function leaveLobby() {
+                try {
+                    if (gameState.isHost) {
+                        await db.collection('lobbies').doc(gameState.lobbyId).delete();
+                    } else {
+                        await db.collection('lobbies').doc(gameState.lobbyId).collection('players').doc(gameState.playerId).delete();
+                    }
+                    showMainScreen();
+                } catch (error) {
+                    console.error('Ошибка выхода из лобби:', error);
+                }
+            }
+
+            // Начать игру
+            async function startGame() {
+                try {
+                    await db.collection('lobbies').doc(gameState.lobbyId).update({
+                        status: 'started'
+                    });
+                } catch (error) {
+                    console.error('Ошибка запуска игры:', error);
+                    showError('lobby-error', 'Ошибка запуска игры');
+                }
+            }
+
+            // Начать игровую сессию
+            function startGameSession() {
+                gameState.currentQuestion = 0;
+                gameState.answers = [];
+                showScreen('game-screen');
+                displayQuestion();
+            }
+
+            // Отображение вопроса
+            function displayQuestion() {
+                const question = gameState.questions[gameState.currentQuestion];
+                const questionCounter = document.getElementById('question-counter');
+                const questionFlag = document.getElementById('question-flag');
+                const questionText = document.getElementById('question-text');
+                const optionsContainer = document.getElementById('options-container');
+                const progressBar = document.getElementById('progress-bar');
+
+                questionCounter.textContent = `Вопрос ${gameState.currentQuestion + 1} из ${gameState.questions.length}`;
+                
+                if (question.theme === 'flags') {
+                    questionFlag.textContent = question.question;
+                    questionFlag.style.display = 'block';
+                    questionText.textContent = 'Какая это страна?';
+                } else {
+                    questionFlag.style.display = 'none';
+                    questionText.textContent = question.question;
+                }
+
+                progressBar.style.width = `${((gameState.currentQuestion + 1) / gameState.questions.length) * 100}%`;
+
+                optionsContainer.innerHTML = '';
+                question.options.forEach((option, index) => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'option';
+                    optionDiv.textContent = option;
+                    optionDiv.onclick = () => selectOption(index);
+                    optionsContainer.appendChild(optionDiv);
+                });
+
+                document.getElementById('next-question-btn').style.display = 'none';
+                document.getElementById('finish-game-btn').style.display = 'none';
+            }
+
+            // Выбор варианта ответа
+            function selectOption(selectedIndex) {
+                const options = document.querySelectorAll('.option');
+                options.forEach((option, index) => {
+                    option.classList.remove('selected');
+                    if (index === selectedIndex) {
+                        option.classList.add('selected');
+                    }
+                });
+
+                gameState.answers[gameState.currentQuestion] = selectedIndex;
+
+                if (gameState.currentQuestion < gameState.questions.length - 1) {
+                    document.getElementById('next-question-btn').style.display = 'block';
+                } else {
+                    document.getElementById('finish-game-btn').style.display = 'block';
+                }
+            }
+
+            // Следующий вопрос
+            function nextQuestion() {
+                gameState.currentQuestion++;
+                displayQuestion();
+            }
+
+            // Завершить игру
+            async function finishGame() {
+                try {
+                    let score = 0;
+                    gameState.answers.forEach((answer, index) => {
+                        if (answer === gameState.questions[index].answerIndex) {
+                            score++;
+                        }
+                    });
+
+                    await db.collection('lobbies').doc(gameState.lobbyId).collection('players').doc(gameState.playerId).update({
+                        score: score,
+                        answers: gameState.answers,
+                        finished: true
+                    });
+
+                    const playersSnapshot = await db.collection('lobbies').doc(gameState.lobbyId).collection('players').get();
+                    const players = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const allFinished = players.every(player => player.finished);
+
+                    if (allFinished && gameState.isHost) {
+                        await db.collection('lobbies').doc(gameState.lobbyId).update({
+                            status: 'finished'
+                        });
+                    }
+
+                    showResults(players);
+                } catch (error) {
+                    console.error('Ошибка завершения игры:', error);
+                    showError('lobby-error', 'Ошибка завершения игры');
+                }
+            }
+
+            // Отображение результатов
+            function showResults(players) {
+                const resultsContainer = document.getElementById('results-container');
+                resultsContainer.innerHTML = '';
+
+                const sortedPlayers = players.sort((a, b) => b.score - a.score);
+                
+                sortedPlayers.forEach((player, index) => {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'result-item';
+                    
+                    let medal = '';
+                    if (index === 0) medal = '🥇';
+                    else if (index === 1) medal = '🥈';
+                    else if (index === 2) medal = '🥉';
+                    
+                    resultDiv.innerHTML = `
+                        <div>
+                            <span class="medal">${medal}</span>
+                            ${player.name} ${player.id === gameState.playerId ? '(Вы)' : ''}
+                        </div>
+                        <div>${player.score}/${gameState.questions.length}</div>
+                    `;
+                    
+                    resultsContainer.appendChild(resultDiv);
+                });
+                
+                showScreen('results-screen');
+            }
+
+            // Обработчики событий
+            document.getElementById('create-lobby-btn').addEventListener('click', showCreateLobby);
+            document.getElementById('join-lobby-btn').addEventListener('click', showJoinLobby);
+            document.getElementById('create-lobby-submit-btn').addEventListener('click', createLobby);
+            document.getElementById('back-to-main-btn').addEventListener('click', showMainScreen);
+            document.getElementById('join-lobby-submit-btn').addEventListener('click', joinLobby);
+            document.getElementById('back-to-main-from-join-btn').addEventListener('click', showMainScreen);
+            document.getElementById('start-game-btn').addEventListener('click', startGame);
+            document.getElementById('leave-lobby-btn').addEventListener('click', leaveLobby);
+            document.getElementById('next-question-btn').addEventListener('click', nextQuestion);
+            document.getElementById('finish-game-btn').addEventListener('click', finishGame);
+            document.getElementById('new-game-btn').addEventListener('click', showMainScreen);
+
+            document.getElementById('player-name').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    showCreateLobby();
+                }
+            });
+
+            document.getElementById('lobby-code-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    joinLobby();
+                }
+            });
+
+            // Автоматическое обновление результатов
+            function setupResultsListener() {
+                if (gameState.playersUnsubscribe) {
+                    gameState.playersUnsubscribe();
+                }
+                
+                gameState.playersUnsubscribe = db.collection('lobbies').doc(gameState.lobbyId).collection('players').onSnapshot((snapshot) => {
+                    const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const allFinished = players.every(player => player.finished);
+                    
+                    if (allFinished) {
+                        showResults(players);
+                    }
+                });
+            }
+
+            window.addEventListener('beforeunload', () => {
+                if (gameState.lobbyUnsubscribe) gameState.lobbyUnsubscribe();
+                if (gameState.playersUnsubscribe) gameState.playersUnsubscribe();
+            });
+
+            console.log('🎯 Квиз-игра загружена успешно!');
+        });
+    </script>
 </body>
 </html>
