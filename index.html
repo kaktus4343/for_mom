@@ -1,298 +1,282 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Браузерная Викторина</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script type="module">
-    // Firebase SDK
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAMBSvRY63cyjvQdbovfsSUws0r65iJ9vo",
-      authDomain: "onlinequiz-bb97e.firebaseapp.com",
-      databaseURL: "https://onlinequiz-bb97e-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "onlinequiz-bb97e",
-      storageBucket: "onlinequiz-bb97e.appspot.com",
-      messagingSenderId: "1058944256488",
-      appId: "1:1058944256488:web:504948b3c3311468dfbc5d"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // Ваши вопросы
-    const questionBank = {
-      flags: [
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇺🇸", options: ["США", "Канада", "Австралия", "Новая Зеландия"], answerIndex: 0 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇯🇵", options: ["Китай", "Южная Корея", "Япония", "Тайланд"], answerIndex: 2 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇫🇷", options: ["Италия", "Франция", "Бельгия", "Нидерланды"], answerIndex: 1 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇬🇧", options: ["Ирландия", "Шотландия", "Великобритания", "Уэльс"], answerIndex: 2 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇩🇪", options: ["Австрия", "Швейцария", "Бельгия", "Германия"], answerIndex: 3 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇧🇷", options: ["Аргентина", "Бразилия", "Колумбия", "Перу"], answerIndex: 1 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇨🇦", options: ["Канада", "США", "Австралия", "Норвегия"], answerIndex: 0 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇦🇺", options: ["Новая Зеландия", "Великобритания", "Австралия", "Фиджи"], answerIndex: 2 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇮🇳", options: ["Пакистан", "Бангладеш", "Шри-Ланка", "Индия"], answerIndex: 3 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇨🇳", options: ["Китай", "Япония", "Южная Корея", "Северная Корея"], answerIndex: 0 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇷🇺", options: ["Беларусь", "Украина", "Россия", "Польша"], answerIndex: 2 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇮🇹", options: ["Франция", "Испания", "Португалия", "Италия"], answerIndex: 3 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇪🇸", options: ["Португалия", "Испания", "Мексика", "Аргентина"], answerIndex: 1 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇳🇱", options: ["Бельгия", "Люксембург", "Нидерланды", "Дания"], answerIndex: 2 },
-        { question: "Какой стране принадлежит этот флаг?", flag: "🇸🇪", options: ["Норвегия", "Дания", "Финляндия", "Швеция"], answerIndex: 3 }
-      ],
-      minecraft: [
-        { question: "Из какого материала можно сделать самые прочные инструменты?", options: ["Алмаз", "Железо", "Золото", "Незерит"], answerIndex: 3 },
-        { question: "Какой моб появляется только в Незере?", options: ["Зомби", "Скелет", "Гаст", "Паук"], answerIndex: 2 },
-        { question: "Сколько блоков составляет максимальная высота мира в Minecraft?", options: ["256", "320", "384", "512"], answerIndex: 2 },
-        { question: "Какой предмет нужен для активации портала в Край?", options: ["Жемчуг Края", "Око Края", "Стержень ифрита", "Алмаз"], answerIndex: 1 },
-        { question: "Какой моб является боссом Края?", options: ["Дракон Края", "Иссушитель", "Старший страж", "Поборник"], answerIndex: 0 },
-        { question: "Из чего можно приготовить хлеб?", options: ["Картофель", "Морковь", "Пшеница", "Свекла"], answerIndex: 2 },
-        { question: "Какой блок нужен для создания портала в Незер?", options: ["Обсидиан", "Бедрок", "Незерит", "Лава"], answerIndex: 0 },
-        { question: "Сколько сердец здоровья у игрока по умолчанию?", options: ["5", "10", "15", "20"], answerIndex: 1 },
-        { question: "Какой предмет используется для починки предметов?", options: ["Алмаз", "Железо", "Наковальня", "Верстак"], answerIndex: 2 },
-        { question: "Какой моб взрывается при приближении к игроку?", options: ["Зомби", "Скелет", "Крипер", "Паук"], answerIndex: 2 },
-        { question: "Что происходит, если не спать несколько ночей подряд?", options: ["Ничего", "Появляются фантомы", "Уменьшается здоровье", "Увеличивается голод"], answerIndex: 1 },
-        { question: "Какой инструмент нужен для добычи камня?", options: ["Топор", "Лопата", "Кирка", "Мотыга"], answerIndex: 2 },
-        { question: "Сколько блоков в стороне у одного чанка?", options: ["8", "16", "32", "64"], answerIndex: 1 },
-        { question: "Какой материал можно найти только в Незере?", options: ["Алмаз", "Золото", "Кварц Незера", "Железо"], answerIndex: 2 },
-        { question: "Какой уровень освещения предотвращает спавн мобов?", options: ["7", "8", "9", "10"], answerIndex: 1 }
-      ]
-    };
-
-    // State
-    let lobbyId = "";
-    let playerId = "";
-    let isHost = false;
-    let currentQuestionIndex = 0;
-    let questions = [];
-
-    // Elements
-    const startScreen = document.getElementById("start-screen");
-    const lobbyScreen = document.getElementById("lobby-screen");
-    const gameScreen = document.getElementById("game-screen");
-    const resultsScreen = document.getElementById("results-screen");
-
-    const playerNameInput = document.getElementById("player-name");
-    const themeSelect = document.getElementById("theme-select");
-    const createLobbyBtn = document.getElementById("create-lobby-btn");
-    const lobbyCodeInput = document.getElementById("lobby-code-input");
-    const joinLobbyBtn = document.getElementById("join-lobby-btn");
-
-    const lobbyCodeEl = document.getElementById("lobby-code");
-    const lobbyThemeEl = document.getElementById("lobby-theme");
-    const playersList = document.getElementById("players-list");
-    const startGameBtn = document.getElementById("start-game-btn");
-
-    const questionText = document.getElementById("question-text");
-    const optionsEl = document.getElementById("options");
-    const nextQuestionBtn = document.getElementById("next-question-btn");
-
-    const resultsList = document.getElementById("results-list");
-
-    // Utils
-    function generateLobbyCode(length = 6) {
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let code = "";
-      for (let i = 0; i < length; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return code;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rock Paper Scissors - Online</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
     }
-
-    function fetchRandomQuestions(theme, count = 10) {
-      const allQuestions = [...questionBank[theme]];
-      return allQuestions.sort(() => 0.5 - Math.random()).slice(0, count);
+    h1 {
+      color: #333;
     }
-
-    // Lobby listeners
-    function subscribeToLobby() {
-      const lobbyRef = doc(db, "lobbies", lobbyId);
-      onSnapshot(lobbyRef, (docSnap) => {
-        const data = docSnap.data();
-        if (!data) return;
-        lobbyThemeEl.textContent = data.theme;
-        if (data.status === "started") {
-          startGame();
-        } else if (data.status === "finished") {
-          showResults();
-        }
-      });
-
-      const playersRef = collection(db, "lobbies", lobbyId, "players");
-      onSnapshot(playersRef, (snapshot) => {
-        playersList.innerHTML = "";
-        snapshot.forEach(doc => {
-          const player = doc.data();
-          const li = document.createElement("li");
-          li.textContent = player.name + ` (${player.score || 0})`;
-          playersList.appendChild(li);
-        });
-      });
+    .game-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
     }
-
-    // Event Handlers
-    createLobbyBtn.addEventListener("click", async () => {
-      const playerName = playerNameInput.value.trim();
-      if (!playerName) return alert("Введите имя");
-      isHost = true;
-      playerId = crypto.randomUUID();
-      lobbyId = generateLobbyCode();
-
-      questions = fetchRandomQuestions(themeSelect.value);
-
-      await setDoc(doc(db, "lobbies", lobbyId), {
-        hostId: playerId,
-        status: "waiting",
-        theme: themeSelect.value,
-        currentQuestion: 0
-      });
-
-      await setDoc(doc(db, "lobbies", lobbyId, "players", playerId), {
-        name: playerName,
-        score: 0,
-        answers: []
-      });
-
-      startScreen.classList.add("hidden");
-      lobbyScreen.classList.remove("hidden");
-      lobbyCodeEl.textContent = lobbyId;
-
-      subscribeToLobby();
-    });
-
-    joinLobbyBtn.addEventListener("click", async () => {
-      const playerName = playerNameInput.value.trim();
-      const inputLobbyId = lobbyCodeInput.value.trim().toUpperCase();
-      if (!playerName || !inputLobbyId) return alert("Введите имя и код лобби");
-
-      const lobbyDoc = await getDoc(doc(db, "lobbies", inputLobbyId));
-      if (!lobbyDoc.exists()) return alert("Лобби не найдено");
-
-      isHost = false;
-      playerId = crypto.randomUUID();
-      lobbyId = inputLobbyId;
-
-      await setDoc(doc(db, "lobbies", lobbyId, "players", playerId), {
-        name: playerName,
-        score: 0,
-        answers: []
-      });
-
-      startScreen.classList.add("hidden");
-      lobbyScreen.classList.remove("hidden");
-      lobbyCodeEl.textContent = lobbyId;
-
-      subscribeToLobby();
-    });
-
-    startGameBtn.addEventListener("click", async () => {
-      if (!isHost) return;
-      await updateDoc(doc(db, "lobbies", lobbyId), {
-        status: "started"
-      });
-    });
-
-    function startGame() {
-      lobbyScreen.classList.add("hidden");
-      gameScreen.classList.remove("hidden");
-      currentQuestionIndex = 0;
-      showQuestion();
+    .choices {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      justify-content: center;
     }
-
-    function showQuestion() {
-      const q = questions[currentQuestionIndex];
-      questionText.innerHTML = q.flag ? `${q.flag} ${q.question}` : q.question;
-      optionsEl.innerHTML = "";
-      q.options.forEach((option, index) => {
-        const btn = document.createElement("button");
-        btn.textContent = option;
-        btn.className = "bg-blue-500 text-white px-4 py-2 rounded mb-2 w-full";
-        btn.addEventListener("click", () => submitAnswer(index));
-        optionsEl.appendChild(btn);
-      });
-      nextQuestionBtn.classList.add("hidden");
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+      transition: background-color 0.3s;
     }
-
-    async function submitAnswer(selectedIndex) {
-      const q = questions[currentQuestionIndex];
-      const playerRef = doc(db, "lobbies", lobbyId, "players", playerId);
-      const playerSnap = await getDoc(playerRef);
-      const playerData = playerSnap.data();
-      const answers = playerData.answers || [];
-      if (answers.length <= currentQuestionIndex) {
-        answers[currentQuestionIndex] = selectedIndex;
-        const newScore = playerData.score + (selectedIndex === q.answerIndex ? 1 : 0);
-        await updateDoc(playerRef, {
-          answers,
-          score: newScore
-        });
-      }
-      nextQuestionBtn.classList.remove("hidden");
+    button:hover {
+      background-color: #0056b3;
     }
-
-    nextQuestionBtn.addEventListener("click", async () => {
-      currentQuestionIndex++;
-      if (currentQuestionIndex >= questions.length) {
-        if (isHost) {
-          await updateDoc(doc(db, "lobbies", lobbyId), {
-            status: "finished"
-          });
-        }
-        showResults();
-      } else {
-        showQuestion();
-      }
-    });
-
-    async function showResults() {
-      gameScreen.classList.add("hidden");
-      resultsScreen.classList.remove("hidden");
-      const playersRef = collection(db, "lobbies", lobbyId, "players");
-      const snapshot = await getDocs(playersRef);
-      const players = [];
-      snapshot.forEach(doc => {
-        players.push(doc.data());
-      });
-      players.sort((a, b) => b.score - a.score);
-      resultsList.innerHTML = "";
-      players.forEach(p => {
-        const li = document.createElement("li");
-        li.textContent = `${p.name}: ${p.score}`;
-        resultsList.appendChild(li);
-      });
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
     }
-  </script>
+    #result, #status, #score, #game-id {
+      font-size: 18px;
+      margin: 10px 0;
+      color: #333;
+    }
+    #game-id-input {
+      padding: 8px;
+      font-size: 16px;
+      margin: 10px;
+      width: 200px;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 p-4">
-  <div id="start-screen" class="space-y-4">
-    <h1 class="text-2xl font-bold mb-2">Браузерная Викторина</h1>
-    <input id="player-name" type="text" placeholder="Ваше имя" class="border px-2 py-1 w-full" />
-    <select id="theme-select" class="border px-2 py-1 w-full">
-      <option value="flags">Флаги</option>
-      <option value="minecraft">Minecraft</option>
-    </select>
-    <button id="create-lobby-btn" class="bg-green-500 text-white px-4 py-2 rounded w-full">Создать лобби</button>
-    <input id="lobby-code-input" type="text" placeholder="Код лобби" class="border px-2 py-1 w-full" />
-    <button id="join-lobby-btn" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Присоединиться к лобби</button>
+<body>
+  <h1>Rock Paper Scissors - Play Online</h1>
+  <div class="game-container">
+    <div id="setup">
+      <input id="game-id-input" type="text" placeholder="Enter Game ID or leave blank">
+      <button onclick="joinGame()">Join/Create Game</button>
+    </div>
+    <div id="game" style="display: none;">
+      <div id="game-id"></div>
+      <div id="status">Waiting for opponent...</div>
+      <div class="choices">
+        <button onclick="makeChoice('rock')" disabled>Rock</button>
+        <button onclick="makeChoice('paper')" disabled>Paper</button>
+        <button onclick="makeChoice('scissors')" disabled>Scissors</button>
+      </div>
+      <div id="result"></div>
+      <div id="score">Wins: 0 | Losses: 0 | Ties: 0</div>
+    </div>
   </div>
 
-  <div id="lobby-screen" class="hidden space-y-4">
-    <h2 class="text-xl font-bold">Код лобби: <span id="lobby-code"></span></h2>
-    <p>Тема: <span id="lobby-theme"></span></p>
-    <ul id="players-list" class="list-disc pl-5"></ul>
-    <button id="start-game-btn" class="bg-green-500 text-white px-4 py-2 rounded w-full">Начать игру</button>
-  </div>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
+    import { getDatabase, ref, set, onValue, push, get, update, remove } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js';
 
-  <div id="game-screen" class="hidden space-y-4">
-    <h2 id="question-text" class="text-xl font-bold"></h2>
-    <div id="options" class="space-y-2"></div>
-    <button id="next-question-btn" class="bg-blue-500 text-white px-4 py-2 rounded w-full hidden">Следующий вопрос</button>
-  </div>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyApVIOCh2a6v6cLfCtLTcqrJALXv6Kjgmc",
+      authDomain: "rockpaper-ec5ca.firebaseapp.com",
+      databaseURL: "https://rockpaper-ec5ca-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "rockpaper-ec5ca",
+      storageBucket: "rockpaper-ec5ca.firebasestorage.app",
+      messagingSenderId: "228487151814",
+      appId: "1:228487151814:web:54ddfa0f87b0b502ba57c7"
+    };
 
-  <div id="results-screen" class="hidden space-y-4">
-    <h2 class="text-xl font-bold mb-2">Результаты</h2>
-    <ul id="results-list" class="list-decimal pl-5"></ul>
-  </div>
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let playerId = Math.random().toString(36).substring(2, 8);
+    let gameId = null;
+    let score = { wins: 0, losses: 0, ties: 0 };
+    let playerNumber = null;
+
+    function generateGameId() {
+      return Math.random().toString(36).substring(2, 8);
+    }
+
+    async function joinGame() {
+      const gameIdInput = document.getElementById('game-id-input').value.trim();
+      gameId = gameIdInput || generateGameId();
+      const gameRef = ref(db, `games/${gameId}`);
+
+      try {
+        const snapshot = await get(gameRef);
+        if (!snapshot.exists()) {
+          // Create new game
+          await set(gameRef, {
+            player1: { id: playerId, choice: null },
+            player2: null,
+            status: 'waiting',
+            result: null
+          });
+          playerNumber = 1;
+        } else {
+          const gameData = snapshot.val();
+          if (!gameData.player2) {
+            // Join as player 2
+            await update(gameRef, {
+              player2: { id: playerId, choice: null },
+              status: 'ready'
+            });
+            playerNumber = 2;
+          } else {
+            alert('Game is full!');
+            return;
+          }
+        }
+
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('game').style.display = 'block';
+        document.getElementById('game-id').textContent = `Game ID: ${gameId}`;
+        listenToGameState();
+      } catch (error) {
+        console.error('Error joining game:', error);
+        alert('Error joining game. Try again.');
+      }
+    }
+
+    function enableChoices(enable) {
+      const buttons = document.querySelectorAll('.choices button');
+      buttons.forEach(button => button.disabled = !enable);
+    }
+
+    async function makeChoice(choice) {
+      if (!gameId || !playerNumber) return;
+      const gameRef = ref(db, `games/${gameId}`);
+      const playerKey = `player${playerNumber}`;
+      try {
+        await update(gameRef, {
+          [`${playerKey}/choice`]: choice
+        });
+        enableChoices(false);
+      } catch (error) {
+        console.error('Error making choice:', error);
+      }
+    }
+
+    function determineWinner(player1Choice, player2Choice) {
+      if (player1Choice === player2Choice) return 'tie';
+      if (
+        (player1Choice === 'rock' && player2Choice === 'scissors') ||
+        (player1Choice === 'paper' && player2Choice === 'rock') ||
+        (player1Choice === 'scissors' && player2Choice === 'paper')
+      ) {
+        return playerNumber === 1 ? 'win' : 'lose';
+      }
+      return playerNumber === 1 ? 'lose' : 'win';
+    }
+
+    async function resetGame(gameRef) {
+      try {
+        await update(gameRef, {
+          'player1/choice': null,
+          'player2/choice': null,
+          result: null,
+          status: 'ready'
+        });
+        enableChoices(true);
+      } catch (error) {
+        console.error('Error resetting game:', error);
+      }
+    }
+
+    function listenToGameState() {
+      const gameRef = ref(db, `games/${gameId}`);
+      onValue(gameRef, async (snapshot) => {
+        const gameData = snapshot.val();
+        if (!gameData) {
+          document.getElementById('status').textContent = 'Game not found.';
+          document.getElementById('game').style.display = 'none';
+          document.getElementById('setup').style.display = 'block';
+          return;
+        }
+
+        // Update status
+        if (gameData.status === 'waiting') {
+          document.getElementById('status').textContent = 'Waiting for opponent...';
+          enableChoices(false);
+        } else if (gameData.status === 'ready') {
+          document.getElementById('status').textContent = 'Both players ready! Make your choice.';
+          enableChoices(true);
+        }
+
+        // Check if both players have made choices
+        if (gameData.player1?.choice && gameData.player2?.choice) {
+          const opponentChoice = playerNumber === 1 ? gameData.player2.choice : gameData.player1.choice;
+          const myChoice = playerNumber === 1 ? gameData.player1.choice : gameData.player2.choice;
+          const outcome = determineWinner(gameData.player1.choice, gameData.player2.choice);
+
+          let resultText = '';
+          if (outcome === 'tie') {
+            resultText = `Tie! Both chose ${myChoice}.`;
+            score.ties++;
+          } else if (outcome === 'win') {
+            resultText = `You win! Your ${myChoice} beats ${opponentChoice}.`;
+            score.wins++;
+          } else {
+            resultText = `You lose! ${opponentChoice} beats your ${myChoice}.`;
+            score.losses++;
+          }
+
+          document.getElementById('result').textContent = resultText;
+          document.getElementById('score').textContent = `Wins: ${score.wins} | Losses: ${score.losses} | Ties: ${score.ties}`;
+
+          // Save result to Firebase
+          const gameResult = {
+            gameId,
+            player1Choice: gameData.player1.choice,
+            player2Choice: gameData.player2.choice,
+            winner: outcome === 'tie' ? 'tie' : (outcome === 'win' ? `player${playerNumber}` : `player${3 - playerNumber}`),
+            timestamp: Date.now()
+          };
+          await push(ref(db, 'gameResults'), gameResult);
+
+          // Reset game after a delay
+          setTimeout(() => resetGame(gameRef), 2000);
+        }
+      }, (error) => {
+        console.error('Error listening to game state:', error);
+        document.getElementById('status').textContent = 'Error connecting to game.';
+      });
+    }
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', async () => {
+      if (gameId && playerNumber) {
+        const gameRef = ref(db, `games/${gameId}`);
+        try {
+          if (playerNumber === 1) {
+            await remove(gameRef);
+          } else {
+            await update(gameRef, {
+              player2: null,
+              status: 'waiting',
+              'player1/choice': null,
+              'player2/choice': null,
+              result: null
+            });
+          }
+        } catch (error) {
+          console.error('Error cleaning up:', error);
+        }
+      }
+    });
+  </script>
 </body>
 </html>
