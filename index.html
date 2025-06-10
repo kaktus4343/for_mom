@@ -362,9 +362,12 @@
                 document.getElementById('player2Name').textContent = players[1].name;
                 document.getElementById('player2Score').textContent = players[1].score;
                 
-                // Игра может начаться
-                if (!gameData.gameActive) {
-                    startNewRound();
+                // Игра может начаться только если она еще не активна и не было раундов
+                if (!gameData.gameActive && (!gameData.round || gameData.round === 0)) {
+                    // Только первый игрок инициирует начало игры
+                    if (playerIds[0] === currentPlayer.id) {
+                        startNewRound();
+                    }
                 }
             }
 
@@ -374,7 +377,7 @@
             // Проверяем результат раунда
             if (gameData.gameActive && players.length === 2 && 
                 players.every(p => p.choice !== null)) {
-                showRoundResult();
+                setTimeout(() => showRoundResult(), 500); // Небольшая задержка для лучшего UX
             }
         }
 
@@ -402,20 +405,18 @@
         }
 
         function startNewRound() {
-            if (Object.keys(gameData.players).length === 2) {
-                const updates = {
-                    gameActive: true,
-                    round: (gameData.round || 0) + 1
-                };
+            if (Object.keys(gameData.players).length === 2 && !gameData.gameActive) {
+                const updates = {};
+                const newRound = (gameData.round || 0) + 1;
+                
+                // Обновляем состояние игры
+                set(ref(database, `games/${currentRoom}/gameActive`), true);
+                set(ref(database, `games/${currentRoom}/round`), newRound);
                 
                 // Сбрасываем выборы игроков
                 Object.keys(gameData.players).forEach(playerId => {
-                    updates[`players/${playerId}/choice`] = null;
-                    updates[`players/${playerId}/ready`] = false;
-                });
-
-                Object.keys(updates).forEach(key => {
-                    set(ref(database, `games/${currentRoom}/${key}`), updates[key]);
+                    set(ref(database, `games/${currentRoom}/players/${playerId}/choice`), null);
+                    set(ref(database, `games/${currentRoom}/players/${playerId}/ready`), false);
                 });
 
                 document.getElementById('result').style.display = 'none';
@@ -440,6 +441,7 @@
 
         function showRoundResult() {
             const players = Object.values(gameData.players);
+            const playerIds = Object.keys(gameData.players);
             const [player1, player2] = players;
             
             const result = determineWinner(player1.choice, player2.choice);
@@ -449,10 +451,16 @@
                 resultText = `Ничья! Оба выбрали ${getChoiceEmoji(player1.choice)}`;
             } else if (result === 'player1') {
                 resultText = `${player1.name} победил! ${getChoiceEmoji(player1.choice)} побеждает ${getChoiceEmoji(player2.choice)}`;
-                set(ref(database, `games/${currentRoom}/players/${Object.keys(gameData.players)[0]}/score`), player1.score + 1);
+                // Только первый игрок обновляет счет чтобы избежать конфликтов
+                if (playerIds[0] === currentPlayer.id) {
+                    set(ref(database, `games/${currentRoom}/players/${playerIds[0]}/score`), player1.score + 1);
+                }
             } else {
                 resultText = `${player2.name} победил! ${getChoiceEmoji(player2.choice)} побеждает ${getChoiceEmoji(player1.choice)}`;
-                set(ref(database, `games/${currentRoom}/players/${Object.keys(gameData.players)[1]}/score`), player2.score + 1);
+                // Только первый игрок обновляет счет чтобы избежать конфликтов
+                if (playerIds[0] === currentPlayer.id) {
+                    set(ref(database, `games/${currentRoom}/players/${playerIds[1]}/score`), player2.score + 1);
+                }
             }
 
             document.getElementById('result').textContent = resultText;
@@ -460,7 +468,9 @@
             document.getElementById('resetBtn').style.display = 'inline-block';
             
             // Деактивируем игру
-            set(ref(database, `games/${currentRoom}/gameActive`), false);
+            if (playerIds[0] === currentPlayer.id) {
+                set(ref(database, `games/${currentRoom}/gameActive`), false);
+            }
         }
 
         function determineWinner(choice1, choice2) {
@@ -485,7 +495,11 @@
         }
 
         function resetGame() {
-            startNewRound();
+            // Только первый игрок может сбросить игру чтобы избежать конфликтов
+            const playerIds = Object.keys(gameData.players);
+            if (playerIds[0] === currentPlayer.id) {
+                startNewRound();
+            }
         }
 
         function leaveGame() {
