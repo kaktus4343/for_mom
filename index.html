@@ -1,282 +1,543 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rock Paper Scissors - Online</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background-color: #f0f0f0;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-    }
-    .game-container {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      text-align: center;
-      max-width: 500px;
-      width: 100%;
-    }
-    .choices {
-      display: flex;
-      gap: 10px;
-      margin: 20px 0;
-      justify-content: center;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-      background-color: #007bff;
-      color: white;
-      transition: background-color 0.3s;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-    #result, #status, #score, #game-id {
-      font-size: 18px;
-      margin: 10px 0;
-      color: #333;
-    }
-    #game-id-input {
-      padding: 8px;
-      font-size: 16px;
-      margin: 10px;
-      width: 200px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Камень Ножницы Бумага</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .setup-screen, .game-screen {
+            display: none;
+        }
+
+        .setup-screen.active, .game-screen.active {
+            display: block;
+        }
+
+        .input-group {
+            margin: 1rem 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+
+        .button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .player-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .choices {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .choice-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid transparent;
+            border-radius: 15px;
+            padding: 1rem;
+            font-size: 3rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .choice-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .choice-btn.selected {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.3);
+        }
+
+        .result {
+            font-size: 1.5rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status {
+            font-size: 1.2rem;
+            margin: 1rem 0;
+            padding: 0.5rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .waiting {
+            color: #ffd700;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .room-id {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-  <h1>Rock Paper Scissors - Play Online</h1>
-  <div class="game-container">
-    <div id="setup">
-      <input id="game-id-input" type="text" placeholder="Enter Game ID or leave blank">
-      <button onclick="joinGame()">Join/Create Game</button>
+    <div class="game-container">
+        <h1>🗿 ✂️ 📄</h1>
+        
+        <!-- Экран настройки -->
+        <div class="setup-screen active" id="setupScreen">
+            <div class="input-group">
+                <label for="playerName">Ваше имя:</label>
+                <input type="text" id="playerName" placeholder="Введите ваше имя">
+            </div>
+            
+            <div class="input-group">
+                <label for="roomId">ID комнаты (оставьте пустым для создания новой):</label>
+                <input type="text" id="roomId" placeholder="Введите ID комнаты или оставьте пустым">
+            </div>
+            
+            <button class="button" onclick="joinGame()">Присоединиться к игре</button>
+        </div>
+
+        <!-- Игровой экран -->
+        <div class="game-screen" id="gameScreen">
+            <div class="room-id">
+                Комната: <span id="currentRoomId"></span>
+            </div>
+            
+            <div class="status" id="gameStatus">
+                Ожидание второго игрока...
+            </div>
+
+            <div class="game-info">
+                <div class="player-info">
+                    <h3 id="player1Name">Игрок 1</h3>
+                    <p>Счёт: <span id="player1Score">0</span></p>
+                </div>
+                <div class="player-info">
+                    <h3 id="player2Name">Игрок 2</h3>
+                    <p>Счёт: <span id="player2Score">0</span></p>
+                </div>
+            </div>
+
+            <div class="choices" id="choices" style="display: none;">
+                <button class="choice-btn" onclick="makeChoice('rock')">🗿</button>
+                <button class="choice-btn" onclick="makeChoice('paper')">📄</button>
+                <button class="choice-btn" onclick="makeChoice('scissors')">✂️</button>
+            </div>
+
+            <div class="result" id="result" style="display: none;"></div>
+            
+            <button class="button" onclick="resetGame()" style="display: none;" id="resetBtn">Новая игра</button>
+            <button class="button" onclick="leaveGame()">Покинуть игру</button>
+        </div>
     </div>
-    <div id="game" style="display: none;">
-      <div id="game-id"></div>
-      <div id="status">Waiting for opponent...</div>
-      <div class="choices">
-        <button onclick="makeChoice('rock')" disabled>Rock</button>
-        <button onclick="makeChoice('paper')" disabled>Paper</button>
-        <button onclick="makeChoice('scissors')" disabled>Scissors</button>
-      </div>
-      <div id="result"></div>
-      <div id="score">Wins: 0 | Losses: 0 | Ties: 0</div>
-    </div>
-  </div>
 
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js';
-    import { getDatabase, ref, set, onValue, push, get, update, remove } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js';
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+        import { getDatabase, ref, set, onValue, push, remove, off } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
 
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyApVIOCh2a6v6cLfCtLTcqrJALXv6Kjgmc",
-      authDomain: "rockpaper-ec5ca.firebaseapp.com",
-      databaseURL: "https://rockpaper-ec5ca-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "rockpaper-ec5ca",
-      storageBucket: "rockpaper-ec5ca.firebasestorage.app",
-      messagingSenderId: "228487151814",
-      appId: "1:228487151814:web:54ddfa0f87b0b502ba57c7"
-    };
+        // Firebase конфигурация
+        const firebaseConfig = {
+            apiKey: "AIzaSyApVIOCh2a6v6cLfCtLTcqrJALXv6Kjgmc",
+            authDomain: "rockpaper-ec5ca.firebaseapp.com",
+            databaseURL: "https://rockpaper-ec5ca-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "rockpaper-ec5ca",
+            storageBucket: "rockpaper-ec5ca.firebasestorage.app",
+            messagingSenderId: "228487151814",
+            appId: "1:228487151814:web:54ddfa0f87b0b502ba57c7"
+        };
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+        // Инициализация Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
 
-    let playerId = Math.random().toString(36).substring(2, 8);
-    let gameId = null;
-    let score = { wins: 0, losses: 0, ties: 0 };
-    let playerNumber = null;
+        // Глобальные переменные
+        let currentPlayer = null;
+        let currentRoom = null;
+        let gameData = null;
+        let gameRef = null;
 
-    function generateGameId() {
-      return Math.random().toString(36).substring(2, 8);
-    }
+        // Функции для глобального доступа
+        window.joinGame = joinGame;
+        window.makeChoice = makeChoice;
+        window.resetGame = resetGame;
+        window.leaveGame = leaveGame;
 
-    async function joinGame() {
-      const gameIdInput = document.getElementById('game-id-input').value.trim();
-      gameId = gameIdInput || generateGameId();
-      const gameRef = ref(db, `games/${gameId}`);
+        function joinGame() {
+            const playerName = document.getElementById('playerName').value.trim();
+            const roomId = document.getElementById('roomId').value.trim();
 
-      try {
-        const snapshot = await get(gameRef);
-        if (!snapshot.exists()) {
-          // Create new game
-          await set(gameRef, {
-            player1: { id: playerId, choice: null },
-            player2: null,
-            status: 'waiting',
-            result: null
-          });
-          playerNumber = 1;
-        } else {
-          const gameData = snapshot.val();
-          if (!gameData.player2) {
-            // Join as player 2
-            await update(gameRef, {
-              player2: { id: playerId, choice: null },
-              status: 'ready'
+            if (!playerName) {
+                alert('Пожалуйста, введите ваше имя');
+                return;
+            }
+
+            currentPlayer = {
+                name: playerName,
+                id: generatePlayerId()
+            };
+
+            if (roomId) {
+                joinExistingRoom(roomId);
+            } else {
+                createNewRoom();
+            }
+        }
+
+        function createNewRoom() {
+            const roomId = generateRoomId();
+            currentRoom = roomId;
+            
+            const gameState = {
+                players: {
+                    [currentPlayer.id]: {
+                        name: currentPlayer.name,
+                        score: 0,
+                        choice: null,
+                        ready: false
+                    }
+                },
+                gameActive: false,
+                round: 0
+            };
+
+            gameRef = ref(database, `games/${roomId}`);
+            set(gameRef, gameState).then(() => {
+                showGameScreen();
+                document.getElementById('currentRoomId').textContent = roomId;
+                listenToGameUpdates();
             });
-            playerNumber = 2;
-          } else {
-            alert('Game is full!');
-            return;
-          }
         }
 
-        document.getElementById('setup').style.display = 'none';
-        document.getElementById('game').style.display = 'block';
-        document.getElementById('game-id').textContent = `Game ID: ${gameId}`;
-        listenToGameState();
-      } catch (error) {
-        console.error('Error joining game:', error);
-        alert('Error joining game. Try again.');
-      }
-    }
+        function joinExistingRoom(roomId) {
+            currentRoom = roomId;
+            gameRef = ref(database, `games/${roomId}`);
+            
+            onValue(gameRef, (snapshot) => {
+                const data = snapshot.val();
+                if (!data) {
+                    alert('Комната не найдена');
+                    return;
+                }
 
-    function enableChoices(enable) {
-      const buttons = document.querySelectorAll('.choices button');
-      buttons.forEach(button => button.disabled = !enable);
-    }
+                const playerIds = Object.keys(data.players || {});
+                if (playerIds.length >= 2) {
+                    alert('Комната заполнена');
+                    return;
+                }
 
-    async function makeChoice(choice) {
-      if (!gameId || !playerNumber) return;
-      const gameRef = ref(db, `games/${gameId}`);
-      const playerKey = `player${playerNumber}`;
-      try {
-        await update(gameRef, {
-          [`${playerKey}/choice`]: choice
-        });
-        enableChoices(false);
-      } catch (error) {
-        console.error('Error making choice:', error);
-      }
-    }
+                // Добавляем игрока в комнату
+                const updatedPlayers = {
+                    ...data.players,
+                    [currentPlayer.id]: {
+                        name: currentPlayer.name,
+                        score: 0,
+                        choice: null,
+                        ready: false
+                    }
+                };
 
-    function determineWinner(player1Choice, player2Choice) {
-      if (player1Choice === player2Choice) return 'tie';
-      if (
-        (player1Choice === 'rock' && player2Choice === 'scissors') ||
-        (player1Choice === 'paper' && player2Choice === 'rock') ||
-        (player1Choice === 'scissors' && player2Choice === 'paper')
-      ) {
-        return playerNumber === 1 ? 'win' : 'lose';
-      }
-      return playerNumber === 1 ? 'lose' : 'win';
-    }
-
-    async function resetGame(gameRef) {
-      try {
-        await update(gameRef, {
-          'player1/choice': null,
-          'player2/choice': null,
-          result: null,
-          status: 'ready'
-        });
-        enableChoices(true);
-      } catch (error) {
-        console.error('Error resetting game:', error);
-      }
-    }
-
-    function listenToGameState() {
-      const gameRef = ref(db, `games/${gameId}`);
-      onValue(gameRef, async (snapshot) => {
-        const gameData = snapshot.val();
-        if (!gameData) {
-          document.getElementById('status').textContent = 'Game not found.';
-          document.getElementById('game').style.display = 'none';
-          document.getElementById('setup').style.display = 'block';
-          return;
+                set(ref(database, `games/${roomId}/players`), updatedPlayers).then(() => {
+                    showGameScreen();
+                    document.getElementById('currentRoomId').textContent = roomId;
+                    listenToGameUpdates();
+                });
+            }, { onlyOnce: true });
         }
 
-        // Update status
-        if (gameData.status === 'waiting') {
-          document.getElementById('status').textContent = 'Waiting for opponent...';
-          enableChoices(false);
-        } else if (gameData.status === 'ready') {
-          document.getElementById('status').textContent = 'Both players ready! Make your choice.';
-          enableChoices(true);
-        }
-
-        // Check if both players have made choices
-        if (gameData.player1?.choice && gameData.player2?.choice) {
-          const opponentChoice = playerNumber === 1 ? gameData.player2.choice : gameData.player1.choice;
-          const myChoice = playerNumber === 1 ? gameData.player1.choice : gameData.player2.choice;
-          const outcome = determineWinner(gameData.player1.choice, gameData.player2.choice);
-
-          let resultText = '';
-          if (outcome === 'tie') {
-            resultText = `Tie! Both chose ${myChoice}.`;
-            score.ties++;
-          } else if (outcome === 'win') {
-            resultText = `You win! Your ${myChoice} beats ${opponentChoice}.`;
-            score.wins++;
-          } else {
-            resultText = `You lose! ${opponentChoice} beats your ${myChoice}.`;
-            score.losses++;
-          }
-
-          document.getElementById('result').textContent = resultText;
-          document.getElementById('score').textContent = `Wins: ${score.wins} | Losses: ${score.losses} | Ties: ${score.ties}`;
-
-          // Save result to Firebase
-          const gameResult = {
-            gameId,
-            player1Choice: gameData.player1.choice,
-            player2Choice: gameData.player2.choice,
-            winner: outcome === 'tie' ? 'tie' : (outcome === 'win' ? `player${playerNumber}` : `player${3 - playerNumber}`),
-            timestamp: Date.now()
-          };
-          await push(ref(db, 'gameResults'), gameResult);
-
-          // Reset game after a delay
-          setTimeout(() => resetGame(gameRef), 2000);
-        }
-      }, (error) => {
-        console.error('Error listening to game state:', error);
-        document.getElementById('status').textContent = 'Error connecting to game.';
-      });
-    }
-
-    // Clean up on page unload
-    window.addEventListener('beforeunload', async () => {
-      if (gameId && playerNumber) {
-        const gameRef = ref(db, `games/${gameId}`);
-        try {
-          if (playerNumber === 1) {
-            await remove(gameRef);
-          } else {
-            await update(gameRef, {
-              player2: null,
-              status: 'waiting',
-              'player1/choice': null,
-              'player2/choice': null,
-              result: null
+        function listenToGameUpdates() {
+            onValue(gameRef, (snapshot) => {
+                gameData = snapshot.val();
+                if (gameData) {
+                    updateGameUI();
+                }
             });
-          }
-        } catch (error) {
-          console.error('Error cleaning up:', error);
         }
-      }
-    });
-  </script>
+
+        function updateGameUI() {
+            const players = Object.values(gameData.players || {});
+            const playerIds = Object.keys(gameData.players || {});
+            
+            // Обновляем информацию об игроках
+            if (players.length >= 1) {
+                document.getElementById('player1Name').textContent = players[0].name;
+                document.getElementById('player1Score').textContent = players[0].score;
+            }
+            
+            if (players.length >= 2) {
+                document.getElementById('player2Name').textContent = players[1].name;
+                document.getElementById('player2Score').textContent = players[1].score;
+                
+                // Игра может начаться
+                if (!gameData.gameActive) {
+                    startNewRound();
+                }
+            }
+
+            // Обновляем статус игры
+            updateGameStatus();
+            
+            // Проверяем результат раунда
+            if (gameData.gameActive && players.length === 2 && 
+                players.every(p => p.choice !== null)) {
+                showRoundResult();
+            }
+        }
+
+        function updateGameStatus() {
+            const players = Object.values(gameData.players || {});
+            const statusElement = document.getElementById('gameStatus');
+            const choicesElement = document.getElementById('choices');
+            
+            if (players.length < 2) {
+                statusElement.textContent = 'Ожидание второго игрока...';
+                statusElement.className = 'status waiting';
+                choicesElement.style.display = 'none';
+            } else if (gameData.gameActive) {
+                const currentPlayerData = gameData.players[currentPlayer.id];
+                if (currentPlayerData.choice === null) {
+                    statusElement.textContent = 'Сделайте ваш выбор!';
+                    statusElement.className = 'status';
+                    choicesElement.style.display = 'flex';
+                } else {
+                    statusElement.textContent = 'Ожидание выбора противника...';
+                    statusElement.className = 'status waiting';
+                    choicesElement.style.display = 'none';
+                }
+            }
+        }
+
+        function startNewRound() {
+            if (Object.keys(gameData.players).length === 2) {
+                const updates = {
+                    gameActive: true,
+                    round: (gameData.round || 0) + 1
+                };
+                
+                // Сбрасываем выборы игроков
+                Object.keys(gameData.players).forEach(playerId => {
+                    updates[`players/${playerId}/choice`] = null;
+                    updates[`players/${playerId}/ready`] = false;
+                });
+
+                Object.keys(updates).forEach(key => {
+                    set(ref(database, `games/${currentRoom}/${key}`), updates[key]);
+                });
+
+                document.getElementById('result').style.display = 'none';
+                document.getElementById('resetBtn').style.display = 'none';
+            }
+        }
+
+        function makeChoice(choice) {
+            if (!gameData.gameActive || gameData.players[currentPlayer.id].choice !== null) {
+                return;
+            }
+
+            // Визуально выделяем выбор
+            document.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+
+            // Сохраняем выбор в базе данных
+            set(ref(database, `games/${currentRoom}/players/${currentPlayer.id}/choice`), choice);
+        }
+
+        function showRoundResult() {
+            const players = Object.values(gameData.players);
+            const [player1, player2] = players;
+            
+            const result = determineWinner(player1.choice, player2.choice);
+            let resultText = '';
+            
+            if (result === 'tie') {
+                resultText = `Ничья! Оба выбрали ${getChoiceEmoji(player1.choice)}`;
+            } else if (result === 'player1') {
+                resultText = `${player1.name} победил! ${getChoiceEmoji(player1.choice)} побеждает ${getChoiceEmoji(player2.choice)}`;
+                set(ref(database, `games/${currentRoom}/players/${Object.keys(gameData.players)[0]}/score`), player1.score + 1);
+            } else {
+                resultText = `${player2.name} победил! ${getChoiceEmoji(player2.choice)} побеждает ${getChoiceEmoji(player1.choice)}`;
+                set(ref(database, `games/${currentRoom}/players/${Object.keys(gameData.players)[1]}/score`), player2.score + 1);
+            }
+
+            document.getElementById('result').textContent = resultText;
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('resetBtn').style.display = 'inline-block';
+            
+            // Деактивируем игру
+            set(ref(database, `games/${currentRoom}/gameActive`), false);
+        }
+
+        function determineWinner(choice1, choice2) {
+            if (choice1 === choice2) return 'tie';
+            
+            const winConditions = {
+                rock: 'scissors',
+                paper: 'rock',
+                scissors: 'paper'
+            };
+            
+            return winConditions[choice1] === choice2 ? 'player1' : 'player2';
+        }
+
+        function getChoiceEmoji(choice) {
+            const emojis = {
+                rock: '🗿',
+                paper: '📄',
+                scissors: '✂️'
+            };
+            return emojis[choice];
+        }
+
+        function resetGame() {
+            startNewRound();
+        }
+
+        function leaveGame() {
+            if (gameRef && currentPlayer && currentRoom) {
+                // Удаляем игрока из комнаты
+                remove(ref(database, `games/${currentRoom}/players/${currentPlayer.id}`));
+                
+                // Если в комнате не остается игроков, удаляем комнату
+                onValue(gameRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (!data || !data.players || Object.keys(data.players).length === 0) {
+                        remove(gameRef);
+                    }
+                }, { onlyOnce: true });
+                
+                off(gameRef);
+            }
+            
+            // Сбрасываем состояние
+            currentPlayer = null;
+            currentRoom = null;
+            gameData = null;
+            gameRef = null;
+            
+            // Возвращаемся к экрану настройки
+            document.getElementById('setupScreen').classList.add('active');
+            document.getElementById('gameScreen').classList.remove('active');
+            
+            // Очищаем поля
+            document.getElementById('playerName').value = '';
+            document.getElementById('roomId').value = '';
+        }
+
+        function showGameScreen() {
+            document.getElementById('setupScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+        }
+
+        function generateRoomId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function generatePlayerId() {
+            return Math.random().toString(36).substring(2, 15);
+        }
+
+        // Обработка закрытия страницы
+        window.addEventListener('beforeunload', () => {
+            if (gameRef && currentPlayer && currentRoom) {
+                remove(ref(database, `games/${currentRoom}/players/${currentPlayer.id}`));
+            }
+        });
+    </script>
 </body>
 </html>
